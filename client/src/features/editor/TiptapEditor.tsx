@@ -45,7 +45,7 @@ function InnerEditor({
       }),
       Underline,
       Placeholder.configure({
-        placeholder: 'Start writing… or share this link to collaborate.',
+        placeholder: 'Start writing… or share the link to collaborate.',
       }),
     ],
     editorProps: {
@@ -87,8 +87,9 @@ export function TiptapEditor({
   const [ready, setReady] = useState<{
     ydoc: Y.Doc;
     provider: HocuspocusProvider;
-    myClientId: number;
   } | null>(null);
+
+  const providerRef = useRef<HocuspocusProvider | null>(null);
 
   useEffect(() => {
     setReady(null);
@@ -114,13 +115,11 @@ export function TiptapEditor({
       },
 
       onSynced() {
-        setReady({
-          ydoc,
-          provider,
-          myClientId: ydoc.clientID,
-        });
+        setReady({ ydoc, provider });
       },
     });
+
+    providerRef.current = provider;
 
     provider.setAwarenessField('user', {
       name: user.name,
@@ -151,9 +150,19 @@ export function TiptapEditor({
     return () => {
       provider.destroy();
       ydoc.destroy();
+      providerRef.current = null;
       setReady(null);
     };
   }, [documentId]);
+
+  useEffect(() => {
+    if (!providerRef.current) return;
+    providerRef.current.setAwarenessField('user', {
+      name: user.name,
+      color: user.color,
+      initials: user.initials,
+    });
+  }, [user.name, user.color, user.initials]);
 
   if (!ready) {
     return (

@@ -1,12 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  ArrowLeft,
-  History,
-  Edit3,
-  MoreHorizontal,
-  Share2,
-} from 'lucide-react';
+import { ArrowLeft, History, Edit3, Share2 } from 'lucide-react';
 import type { Editor as TiptapEditorType } from '@tiptap/react';
 
 import { TiptapEditor } from '@/features/editor/TiptapEditor';
@@ -14,6 +8,8 @@ import { EditorToolbar } from '@/features/editor/EditorToolbar';
 import { PresenceAvatars } from '@/features/editor/PresenceAvatars';
 import { CollaborationStatus } from '@/features/editor/CollaborationStatus';
 import { RevisionPanel } from '@/features/editor/RevisionPanel';
+import { UserIdentityBadge } from '@/features/editor/UserIdentityBadge';
+import { IdentityModal } from '@/components/ui/IdentityModal';
 import { Button } from '@/components/ui/Button';
 import { useUser } from '@/hooks/useUser';
 import { useToast } from '@/components/ui/Toast';
@@ -25,25 +21,35 @@ export default function Editor() {
   const { id: documentId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const toast = useToast();
-  const { user } = useUser();
 
+  // user now exposes updateColor and dismissIdentityModal
+  const { user, updateName, updateColor, dismissIdentityModal } = useUser();
+
+  // Document state
   const [docTitle, setDocTitle] = useState('Untitled Document');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isSavingTitle, setIsSavingTitle] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
+
+  // Collaboration state
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const [presenceUsers, setPresenceUsers] = useState<PresenceUser[]>([]);
   const [editor, setEditor] = useState<TiptapEditorType | null>(null);
+
+  // UI state
   const [isRevisionPanelOpen, setIsRevisionPanelOpen] = useState(false);
+
+  // Load document title on mount
   useEffect(() => {
     if (!documentId) return;
-
     documentsApi
       .get(documentId)
       .then((doc) => setDocTitle(doc.title))
       .catch(() => toast.error('Failed to load document'));
   }, [documentId]);
+
+  // Debounced title save
   const saveTitleRef = useRef<number>();
 
   const handleTitleChange = (newTitle: string) => {
@@ -75,12 +81,21 @@ export default function Editor() {
 
   const handleShare = useCallback(() => {
     navigator.clipboard.writeText(window.location.href);
-    toast.success('Link copied! Share it with collaborators.');
+    toast.success('Link copied! Share it to collaborate.');
   }, []);
 
   const handleRevisionRestored = useCallback(() => {
     window.location.reload();
   }, []);
+
+  // Handle identity modal confirm: set name + color together
+  const handleIdentityConfirm = useCallback(
+    (name: string, color: string) => {
+      updateName(name);
+      updateColor(color);
+    },
+    [updateName, updateColor]
+  );
 
   if (!documentId) {
     return (
@@ -97,27 +112,39 @@ export default function Editor() {
 
   return (
     <div className="h-screen flex flex-col bg-[#09090B] overflow-hidden">
-      {}
+
+      {/* ── Identity Modal — shown once on first visit ──────────────────── */}
+      {!user.hasChosenName && (
+        <IdentityModal
+          defaultName={user.name}
+          defaultColor={user.color}
+          onConfirm={handleIdentityConfirm}
+          onDismiss={dismissIdentityModal}
+        />
+      )}
+
+      {/* ── Top Navigation Bar ───────────────────────────────────────────── */}
       <header className="flex-shrink-0 h-14 border-b border-border bg-surface/60 backdrop-blur-md flex items-center px-4 gap-3 z-20">
-        {}
+
+        {/* Back button */}
         <button
           onClick={() => navigate('/dashboard')}
-          className="flex items-center gap-1.5 text-text-muted hover:text-text-secondary transition-colors text-sm"
+          className="flex items-center gap-1.5 text-text-muted hover:text-text-secondary transition-colors text-sm flex-shrink-0"
         >
           <ArrowLeft size={14} />
           <span className="hidden sm:inline">Docs</span>
         </button>
 
-        <div className="w-px h-5 bg-border" />
+        <div className="w-px h-5 bg-border flex-shrink-0" />
 
-        {}
+        {/* Logo mark */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <div className="w-5 h-5 rounded-md bg-accent flex items-center justify-center">
             <Edit3 size={10} className="text-white" />
           </div>
         </div>
 
-        {}
+        {/* Editable document title */}
         <div className="flex-1 min-w-0">
           {isEditingTitle ? (
             <input
@@ -138,28 +165,35 @@ export default function Editor() {
           ) : (
             <button
               onClick={() => setIsEditingTitle(true)}
-              className="text-sm font-semibold text-text-primary hover:text-white transition-colors truncate max-w-xs flex items-center gap-1.5"
+              className="text-sm font-semibold text-text-primary hover:text-white transition-colors truncate max-w-xs"
               title="Click to rename"
             >
-              <span className="truncate">
-                {isSavingTitle ? `${docTitle}…` : docTitle}
-              </span>
+              {isSavingTitle ? `${docTitle}…` : docTitle}
             </button>
           )}
         </div>
 
-        {}
-        <div className="flex items-center gap-3 flex-shrink-0">
-          {}
+        {/* Right cluster: status + presence + identity + actions */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+
+          {/* Save + connection status */}
           <CollaborationStatus status={connectionStatus} saveStatus={saveStatus} />
 
-          {}
-          <PresenceAvatars
-            users={presenceUsers}
-            currentUserId={undefined}
+          <div className="w-px h-4 bg-border" />
+
+          {/* Other users' presence avatars */}
+          <PresenceAvatars users={presenceUsers} />
+
+          {/* Current user identity badge — shows "You · Swift Fox" + edit popover */}
+          <UserIdentityBadge
+            user={user}
+            onUpdateName={updateName}
+            onUpdateColor={updateColor}
           />
 
-          {}
+          <div className="w-px h-4 bg-border" />
+
+          {/* Share button */}
           <Button
             variant="ghost"
             size="sm"
@@ -170,7 +204,7 @@ export default function Editor() {
             Share
           </Button>
 
-          {}
+          {/* Revision history toggle */}
           <button
             onClick={() => setIsRevisionPanelOpen(!isRevisionPanelOpen)}
             title="Revision history"
@@ -187,19 +221,15 @@ export default function Editor() {
         </div>
       </header>
 
-      {}
+      {/* ── Editor area ──────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
         <div
           className={cn(
-            'flex-1 flex flex-col overflow-hidden',
-            'transition-all duration-300',
+            'flex-1 flex flex-col overflow-hidden transition-all duration-300',
             isRevisionPanelOpen && 'mr-80'
           )}
         >
-          {}
           <EditorToolbar editor={editor} />
-
-          {}
           <TiptapEditor
             documentId={documentId}
             user={user}
@@ -210,7 +240,6 @@ export default function Editor() {
           />
         </div>
 
-        {}
         <RevisionPanel
           documentId={documentId}
           isOpen={isRevisionPanelOpen}
