@@ -1,15 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import {
-  Zap,
-  Users,
-  GitBranch,
-  Clock,
-  ArrowRight,
-  Edit3,
-  Shield,
-  Star,
+  Zap, Users, GitBranch, Clock, ArrowRight, Edit3, Shield, Star,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { documentsApi } from '@/lib/api';
 import { useState } from 'react';
 
@@ -63,9 +57,12 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-[#09090B] text-text-primary overflow-x-hidden">
-      {}
-      <nav className="fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-6 border-b border-border/50 bg-[#09090B]/80 backdrop-blur-md">
+    // CHANGED: bg-[#09090B] → bg-bg
+    <div className="min-h-screen bg-bg text-text-primary overflow-x-hidden">
+
+      {/* ── Navbar ───────────────────────────────────────────────────────── */}
+      {/* CHANGED: bg-[#09090B]/80 → bg-bg/80 */}
+      <nav className="fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-6 border-b border-border/50 bg-bg/80 backdrop-blur-md">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center">
             <Edit3 size={13} className="text-white" />
@@ -76,27 +73,26 @@ export default function Landing() {
           <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
             Dashboard
           </Button>
+          {/* Theme toggle in landing nav */}
+          <ThemeToggle />
           <Button size="sm" onClick={handleCreateDoc} isLoading={isCreating}>
             Start writing
           </Button>
         </div>
       </nav>
 
-      {}
+      {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="relative pt-32 pb-24 px-6 overflow-hidden">
-        {}
         <div className="absolute inset-0 bg-hero-glow pointer-events-none" />
         <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[200px] bg-accent/8 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative max-w-4xl mx-auto text-center">
-          {}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-accent/20 bg-accent-muted text-accent text-xs font-medium mb-8 animate-fade-in">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-accent/20 bg-accent/10 text-accent text-xs font-medium mb-8 animate-fade-in">
             <Star size={11} />
             Real-time collaborative editing, powered by Yjs CRDTs
           </div>
 
-          {}
-          <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white leading-[1.1] mb-6 animate-slide-up">
+          <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-text-primary leading-[1.1] mb-6 animate-slide-up">
             Write together,
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-violet-400">
@@ -109,7 +105,6 @@ export default function Landing() {
             live cursors, and conflict-free editing — all in a clean, distraction-free interface.
           </p>
 
-          {}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 animate-slide-up">
             <Button
               size="lg"
@@ -125,13 +120,12 @@ export default function Landing() {
           </div>
         </div>
 
-        {}
+        {/* ── Editor mockup ─────────────────────────────────────────────── */}
         <div className="relative max-w-3xl mx-auto mt-20 animate-slide-up">
-          {}
           <div className="absolute inset-x-10 -top-4 h-40 bg-accent/10 blur-2xl rounded-full" />
 
-          <div className="relative rounded-2xl border border-border-strong bg-surface overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.6)]">
-            {}
+          <div className="relative rounded-2xl border border-border-strong bg-surface overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.3)]">
+            {/* Window chrome */}
             <div className="flex items-center gap-1.5 px-4 py-3 border-b border-border bg-surface-raised">
               <div className="w-2.5 h-2.5 rounded-full bg-danger/70" />
               <div className="w-2.5 h-2.5 rounded-full bg-warning/70" />
@@ -143,7 +137,7 @@ export default function Landing() {
               </div>
             </div>
 
-            {}
+            {/* Toolbar mockup */}
             <div className="flex items-center gap-1 px-4 py-2 border-b border-border bg-surface/80">
               {['B', 'I', 'U', '|', 'H1', 'H2', '|', '≡', '⋮'].map((label, i) =>
                 label === '|' ? (
@@ -157,8 +151,6 @@ export default function Landing() {
                   </div>
                 )
               )}
-
-              {}
               <div className="ml-auto flex -space-x-1.5">
                 {['#6366F1', '#10B981', '#EC4899'].map((color, i) => (
                   <div
@@ -172,19 +164,18 @@ export default function Landing() {
               </div>
             </div>
 
-            {}
-            <div className="p-8 bg-[#09090B] min-h-[200px] font-serif">
-              <h2 className="text-2xl font-bold text-white mb-3">
+            {/* CHANGED: bg-[#09090B] → bg-surface (adapts to theme) */}
+            <div className="p-8 bg-surface min-h-[200px] font-serif">
+              <h2 className="text-2xl font-bold text-text-primary mb-3">
                 Q3 Product Strategy
               </h2>
               <p className="text-text-secondary text-sm leading-relaxed mb-3">
                 Our focus for the third quarter is to solidify our core user experience while
                 expanding into enterprise segments.
               </p>
-              {}
               <p className="text-text-secondary text-sm leading-relaxed relative">
                 The key initiatives include{' '}
-                <span className="text-white font-medium">real-time collaboration</span>,
+                <span className="text-text-primary font-medium">real-time collaboration</span>,
                 <span className="relative inline-block mx-0.5">
                   <span className="absolute -top-0.5 left-0 w-0.5 h-5 bg-[#10B981] rounded-full" />
                 </span>
@@ -195,7 +186,6 @@ export default function Landing() {
                 performance optimization.
               </p>
 
-              {}
               <div className="flex items-center gap-3 mt-6">
                 <div className="flex items-center gap-1.5">
                   <div className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
@@ -211,11 +201,11 @@ export default function Landing() {
         </div>
       </section>
 
-      {}
+      {/* ── Features Grid ──────────────────────────────────────────────────── */}
       <section className="py-24 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-text-primary tracking-tight mb-4">
               Built for real collaboration
             </h2>
             <p className="text-text-secondary max-w-lg mx-auto text-base">
@@ -229,7 +219,7 @@ export default function Landing() {
                 key={i}
                 className="p-5 rounded-xl bg-surface border border-border hover:border-border-strong hover:bg-surface-raised transition-all duration-200 group"
               >
-                <div className="w-9 h-9 rounded-lg bg-accent-muted border border-accent/20 flex items-center justify-center text-accent mb-4 group-hover:scale-105 transition-transform duration-200">
+                <div className="w-9 h-9 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center text-accent mb-4 group-hover:scale-105 transition-transform duration-200">
                   {feature.icon}
                 </div>
                 <h3 className="text-sm font-semibold text-text-primary mb-2">
@@ -242,12 +232,12 @@ export default function Landing() {
         </div>
       </section>
 
-      {}
+      {/* ── CTA Banner ─────────────────────────────────────────────────────── */}
       <section className="py-20 px-6">
         <div className="max-w-2xl mx-auto text-center relative">
           <div className="absolute inset-0 bg-gradient-radial from-accent/10 via-transparent to-transparent rounded-3xl pointer-events-none" />
           <div className="relative p-12 rounded-2xl border border-border bg-surface">
-            <h2 className="text-3xl font-bold text-white mb-4 tracking-tight">
+            <h2 className="text-3xl font-bold text-text-primary mb-4 tracking-tight">
               Start writing with your team
             </h2>
             <p className="text-text-secondary mb-8 leading-relaxed">
@@ -260,7 +250,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {}
+      {/* ── Footer ─────────────────────────────────────────────────────────── */}
       <footer className="border-t border-border py-8 px-6">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">

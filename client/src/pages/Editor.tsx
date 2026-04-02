@@ -10,6 +10,7 @@ import { CollaborationStatus } from '@/features/editor/CollaborationStatus';
 import { RevisionPanel } from '@/features/editor/RevisionPanel';
 import { UserIdentityBadge } from '@/features/editor/UserIdentityBadge';
 import { IdentityModal } from '@/components/ui/IdentityModal';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Button } from '@/components/ui/Button';
 import { useUser } from '@/hooks/useUser';
 import { useToast } from '@/components/ui/Toast';
@@ -21,26 +22,19 @@ export default function Editor() {
   const { id: documentId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const toast = useToast();
-
-  // user now exposes updateColor and dismissIdentityModal
   const { user, updateName, updateColor, dismissIdentityModal } = useUser();
 
-  // Document state
   const [docTitle, setDocTitle] = useState('Untitled Document');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isSavingTitle, setIsSavingTitle] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
-  // Collaboration state
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const [presenceUsers, setPresenceUsers] = useState<PresenceUser[]>([]);
   const [editor, setEditor] = useState<TiptapEditorType | null>(null);
-
-  // UI state
   const [isRevisionPanelOpen, setIsRevisionPanelOpen] = useState(false);
 
-  // Load document title on mount
   useEffect(() => {
     if (!documentId) return;
     documentsApi
@@ -49,7 +43,6 @@ export default function Editor() {
       .catch(() => toast.error('Failed to load document'));
   }, [documentId]);
 
-  // Debounced title save
   const saveTitleRef = useRef<number>();
 
   const handleTitleChange = (newTitle: string) => {
@@ -88,7 +81,6 @@ export default function Editor() {
     window.location.reload();
   }, []);
 
-  // Handle identity modal confirm: set name + color together
   const handleIdentityConfirm = useCallback(
     (name: string, color: string) => {
       updateName(name);
@@ -99,7 +91,8 @@ export default function Editor() {
 
   if (!documentId) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#09090B]">
+      // CHANGED: bg-[#09090B] → bg-bg
+      <div className="min-h-screen flex items-center justify-center bg-bg">
         <div className="text-center">
           <p className="text-text-secondary mb-4">Invalid document link.</p>
           <Button variant="secondary" size="sm" onClick={() => navigate('/dashboard')}>
@@ -111,9 +104,10 @@ export default function Editor() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-[#09090B] overflow-hidden">
+    // CHANGED: bg-[#09090B] → bg-bg
+    <div className="h-screen flex flex-col bg-bg overflow-hidden">
 
-      {/* ── Identity Modal — shown once on first visit ──────────────────── */}
+      {/* Identity modal — shown once on first visit */}
       {!user.hasChosenName && (
         <IdentityModal
           defaultName={user.name}
@@ -123,10 +117,10 @@ export default function Editor() {
         />
       )}
 
-      {/* ── Top Navigation Bar ───────────────────────────────────────────── */}
+      {/* ── Top Navigation Bar ──────────────────────────────────────────── */}
+      {/* CHANGED: bg-surface/60 stays as-is (already uses named token) */}
       <header className="flex-shrink-0 h-14 border-b border-border bg-surface/60 backdrop-blur-md flex items-center px-4 gap-3 z-20">
 
-        {/* Back button */}
         <button
           onClick={() => navigate('/dashboard')}
           className="flex items-center gap-1.5 text-text-muted hover:text-text-secondary transition-colors text-sm flex-shrink-0"
@@ -137,7 +131,6 @@ export default function Editor() {
 
         <div className="w-px h-5 bg-border flex-shrink-0" />
 
-        {/* Logo mark */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <div className="w-5 h-5 rounded-md bg-accent flex items-center justify-center">
             <Edit3 size={10} className="text-white" />
@@ -165,7 +158,7 @@ export default function Editor() {
           ) : (
             <button
               onClick={() => setIsEditingTitle(true)}
-              className="text-sm font-semibold text-text-primary hover:text-white transition-colors truncate max-w-xs"
+              className="text-sm font-semibold text-text-primary hover:text-text-primary/80 transition-colors truncate max-w-xs"
               title="Click to rename"
             >
               {isSavingTitle ? `${docTitle}…` : docTitle}
@@ -173,18 +166,14 @@ export default function Editor() {
           )}
         </div>
 
-        {/* Right cluster: status + presence + identity + actions */}
+        {/* Right cluster */}
         <div className="flex items-center gap-2 flex-shrink-0">
-
-          {/* Save + connection status */}
           <CollaborationStatus status={connectionStatus} saveStatus={saveStatus} />
 
           <div className="w-px h-4 bg-border" />
 
-          {/* Other users' presence avatars */}
           <PresenceAvatars users={presenceUsers} />
 
-          {/* Current user identity badge — shows "You · Swift Fox" + edit popover */}
           <UserIdentityBadge
             user={user}
             onUpdateName={updateName}
@@ -193,7 +182,9 @@ export default function Editor() {
 
           <div className="w-px h-4 bg-border" />
 
-          {/* Share button */}
+          {/* Theme toggle */}
+          <ThemeToggle />
+
           <Button
             variant="ghost"
             size="sm"
@@ -204,7 +195,6 @@ export default function Editor() {
             Share
           </Button>
 
-          {/* Revision history toggle */}
           <button
             onClick={() => setIsRevisionPanelOpen(!isRevisionPanelOpen)}
             title="Revision history"
@@ -212,7 +202,7 @@ export default function Editor() {
               'w-8 h-8 rounded-lg flex items-center justify-center',
               'transition-all duration-150 text-text-muted',
               isRevisionPanelOpen
-                ? 'bg-accent-muted text-accent'
+                ? 'bg-accent/15 text-accent'
                 : 'hover:bg-surface-overlay hover:text-text-secondary'
             )}
           >
@@ -221,7 +211,7 @@ export default function Editor() {
         </div>
       </header>
 
-      {/* ── Editor area ──────────────────────────────────────────────────── */}
+      {/* ── Editor area ─────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
         <div
           className={cn(

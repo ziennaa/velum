@@ -21,10 +21,13 @@ export function PresenceAvatars({ users }: PresenceAvatarsProps) {
             role="listitem"
             title={user.name}
             className={cn(
-              'relative w-7 h-7 rounded-full',
+              'w-7 h-7 rounded-full',
               'flex items-center justify-center',
               'text-[10px] font-bold text-white',
-              'border-2 border-[#09090B]',
+              // CHANGED: border-[#09090B] → border-bg
+              // The border creates the stacking gap between overlapping avatars.
+              // Using border-bg makes it match the page background in both themes.
+              'border-2 border-bg',
               'cursor-default select-none',
               'transition-transform duration-150 hover:scale-110 hover:z-10'
             )}
@@ -39,7 +42,7 @@ export function PresenceAvatars({ users }: PresenceAvatarsProps) {
             title={`${overflow} more collaborator${overflow !== 1 ? 's' : ''}`}
             className={cn(
               'w-7 h-7 rounded-full',
-              'border-2 border-[#09090B]',
+              'border-2 border-bg',
               'bg-surface-overlay',
               'flex items-center justify-center',
               'text-[10px] font-semibold text-text-secondary',
@@ -51,11 +54,8 @@ export function PresenceAvatars({ users }: PresenceAvatarsProps) {
         )}
       </div>
 
-      {/* Collaborator count label */}
       <span className="text-xs text-text-muted">
-        {users.length === 1
-          ? '1 other editing'
-          : `${users.length} others editing`}
+        {users.length === 1 ? '1 other editing' : `${users.length} others editing`}
       </span>
     </div>
   );
