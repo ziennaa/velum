@@ -1,15 +1,13 @@
 import axios from 'axios';
 import type { Document, Revision, ApiResponse } from '@/types';
 
-
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '',
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, 
+  timeout: 10000,
 });
-
 
 apiClient.interceptors.response.use(
   (response) => response,
@@ -22,19 +20,27 @@ apiClient.interceptors.response.use(
   }
 );
 
+
 export const documentsApi = {
   list: async (): Promise<Document[]> => {
-    const { data } = await apiClient.get<ApiResponse<Document[]>>('/api/documents');
+    const { data } = await apiClient.get<ApiResponse<Document[]>>(
+      '/api/documents'
+    );
     return data.data ?? [];
   },
 
   get: async (id: string): Promise<Document> => {
-    const { data } = await apiClient.get<ApiResponse<Document>>(`/api/documents/${id}`);
+    const { data } = await apiClient.get<ApiResponse<Document>>(
+      `/api/documents/${id}`
+    );
     return data.data!;
   },
 
   create: async (title?: string): Promise<Document> => {
-    const { data } = await apiClient.post<ApiResponse<Document>>('/api/documents', { title });
+    const { data } = await apiClient.post<ApiResponse<Document>>(
+      '/api/documents',
+      { title }
+    );
     return data.data!;
   },
 
@@ -60,7 +66,9 @@ export const revisionsApi = {
     return data.data ?? [];
   },
 
-  restore: async (revisionId: string): Promise<void> => {
-    await apiClient.post(`/api/documents/${revisionId}/revisions/${revisionId}/restore`);
+  restore: async (documentId: string, revisionId: string): Promise<void> => {
+    await apiClient.post(
+      `/api/documents/${documentId}/revisions/${revisionId}/restore`
+    );
   },
 };

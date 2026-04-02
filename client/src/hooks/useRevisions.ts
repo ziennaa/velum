@@ -8,7 +8,7 @@ interface UseRevisionsReturn {
   isRestoring: boolean;
   error: string | null;
   fetchRevisions: (documentId: string) => Promise<void>;
-  restoreRevision: (revisionId: string) => Promise<boolean>;
+  restoreRevision: (documentId: string, revisionId: string) => Promise<boolean>;
 }
 
 export function useRevisions(): UseRevisionsReturn {
@@ -24,24 +24,31 @@ export function useRevisions(): UseRevisionsReturn {
       const revs = await revisionsApi.list(documentId);
       setRevisions(revs);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load revisions');
+      setError(
+        err instanceof Error ? err.message : 'Failed to load revisions'
+      );
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  const restoreRevision = useCallback(async (revisionId: string): Promise<boolean> => {
-    setIsRestoring(true);
-    try {
-      await revisionsApi.restore(revisionId);
-      return true;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to restore revision');
-      return false;
-    } finally {
-      setIsRestoring(false);
-    }
-  }, []);
+  const restoreRevision = useCallback(
+    async (documentId: string, revisionId: string): Promise<boolean> => {
+      setIsRestoring(true);
+      try {
+        await revisionsApi.restore(documentId, revisionId);
+        return true;
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : 'Failed to restore revision'
+        );
+        return false;
+      } finally {
+        setIsRestoring(false);
+      }
+    },
+    []
+  );
 
   return {
     revisions,

@@ -1,10 +1,9 @@
-import mongoose, { Document as MongoDocument, Schema } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 
-
-export interface IDocument extends MongoDocument {
+export interface IDocument {
   _id: string;
   title: string;
-  yjsState: Buffer | null;  
+  yjsState: Buffer | null;
   collaboratorCount: number;
   createdAt: Date;
   updatedAt: Date;
@@ -33,10 +32,12 @@ const DocumentSchema = new Schema<IDocument>(
   },
   {
     timestamps: true,
-    _id: false,
   }
 );
 
 DocumentSchema.index({ updatedAt: -1 });
 
-export const DocumentModel = mongoose.model<IDocument>('Document', DocumentSchema);
+export const DocumentModel = mongoose.model<IDocument>(
+  'Document',
+  DocumentSchema
+);

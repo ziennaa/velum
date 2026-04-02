@@ -4,6 +4,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Collaboration from '@tiptap/extension-collaboration';
 import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import Underline from '@tiptap/extension-underline';
+import Placeholder from '@tiptap/extension-placeholder';
 import * as Y from 'yjs';
 import { HocuspocusProvider } from '@hocuspocus/provider';
 import type { User, PresenceUser, ConnectionStatus } from '@/types';
@@ -17,7 +18,6 @@ interface TiptapEditorProps {
   onEditorReady: (editor: import('@tiptap/react').Editor) => void;
 }
 
-
 interface InnerEditorProps {
   ydoc: Y.Doc;
   provider: HocuspocusProvider;
@@ -26,7 +26,13 @@ interface InnerEditorProps {
   onEditorReady: (editor: import('@tiptap/react').Editor) => void;
 }
 
-function InnerEditor({ ydoc, provider, user, onSaveStatusChange, onEditorReady }: InnerEditorProps) {
+function InnerEditor({
+  ydoc,
+  provider,
+  user,
+  onSaveStatusChange,
+  onEditorReady,
+}: InnerEditorProps) {
   const saveTimeoutRef = useRef<number>();
 
   const editor = useEditor({
@@ -38,6 +44,9 @@ function InnerEditor({ ydoc, provider, user, onSaveStatusChange, onEditorReady }
         user: { name: user.name, color: user.color },
       }),
       Underline,
+      Placeholder.configure({
+        placeholder: 'Start writing… or share this link to collaborate.',
+      }),
     ],
     editorProps: {
       attributes: {
@@ -78,6 +87,7 @@ export function TiptapEditor({
   const [ready, setReady] = useState<{
     ydoc: Y.Doc;
     provider: HocuspocusProvider;
+    myClientId: number;
   } | null>(null);
 
   useEffect(() => {
@@ -93,7 +103,6 @@ export function TiptapEditor({
 
       onConnect() {
         onConnectionChange('connected');
-        setReady({ ydoc, provider });
       },
 
       onDisconnect() {
@@ -103,6 +112,14 @@ export function TiptapEditor({
       onStatus({ status }) {
         if (status === 'connecting') onConnectionChange('connecting');
       },
+
+      onSynced() {
+        setReady({
+          ydoc,
+          provider,
+          myClientId: ydoc.clientID,
+        });
+      },
     });
 
     provider.setAwarenessField('user', {
@@ -110,12 +127,15 @@ export function TiptapEditor({
       color: user.color,
       initials: user.initials,
     });
+
     provider.awareness?.on('change', () => {
       const states = provider.awareness?.getStates();
       if (!states) return;
 
       const users: PresenceUser[] = [];
       states.forEach((state, clientId) => {
+        if (clientId === ydoc.clientID) return;
+
         if (state.user) {
           users.push({
             clientId,
