@@ -497,52 +497,355 @@ import { ArrowRight, Edit3 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { documentsApi } from '@/lib/api';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
-// ── Presence users in the mockup ─────────────────────────────────────────────
-const PRESENCE = [
-  { initials: 'RK', color: '#6366F1', name: 'Riya K.',  status: 'typing'   },
-  { initials: 'AM', color: '#10B981', name: 'Aarav M.', status: 'viewing'  },
-  { initials: 'JP', color: '#F59E0B', name: 'Jess P.',  status: 'idle'     },
+// ─── Static data ─────────────────────────────────────────────────────────────
+
+interface MockUser {
+  id: string;
+  initials: string;
+  color: string;
+  name: string;
+}
+
+const MOCK_USERS: MockUser[] = [
+  { id: 'riya',  initials: 'RK', color: '#6366F1', name: 'Riya K.'  },
+  { id: 'aarav', initials: 'AM', color: '#10B981', name: 'Aarav M.' },
+  { id: 'jess',  initials: 'JP', color: '#F59E0B', name: 'Jess P.'  },
 ];
 
-// ── Feature list — numbered, specific, no category labels ────────────────────
+// Four paragraphs that type themselves out, each "written" by a different user.
+// The content is Velum-about-Velum — self-referential and product-specific.
+const BLOCKS: Array<{ id: string; typist: string | null; text: string }> = [
+  {
+    id: 'b1',
+    typist: null,
+    text: 'We used Google Docs for our sprint notes. Someone kept overwriting the intro. Every. Single. Week.',
+  },
+  {
+    id: 'b2',
+    typist: 'riya',
+    text: "The conflict strategy was: last writer wins. That's not conflict resolution. That's just whoever closes their laptop last.",
+  },
+  {
+    id: 'b3',
+    typist: 'aarav',
+    text: 'So we built Velum. CRDT math — two people can type in the same sentence simultaneously and both edits survive.',
+  },
+  {
+    id: 'b4',
+    typist: 'jess',
+    text: "(Jess wrote this paragraph while Aarav was still typing the one above it. Both are here. This is the whole point.)",
+  },
+];
+
 const FEATURES = [
   {
     n: '01',
-    title: 'Your teammate\'s edit appears while they\'re still typing it.',
-    desc: 'Not after a sync. Not on reload. The document updates as each character is entered. Sub-100ms latency over WebSocket.',
+    title: "Your teammate's edit appears while they're still typing it.",
+    desc: 'Not after a sync. Not on reload. Changes arrive character-by-character over a persistent WebSocket connection.',
   },
   {
     n: '02',
-    title: 'Two people editing the same sentence. No conflict.',
-    desc: 'Yjs CRDT handles concurrent edits mathematically. Both changes merge. Nobody overwrites the other. This is not a lock-and-unlock system.',
+    title: 'Two people, one sentence — no conflict, no overwrite.',
+    desc: 'Yjs CRDT resolves concurrent edits without a server arbiter. Both changes merge deterministically. Nobody loses their work.',
   },
   {
     n: '03',
-    title: 'Coloured cursors show exactly where each person is.',
-    desc: 'Name labels appear above each cursor. You can see if someone is in your paragraph before you start editing it.',
+    title: 'Coloured cursors. Name labels. You know who is where.',
+    desc: 'Each user gets a persistent cursor colour. Labels appear above each cursor. You can see if someone is already in your paragraph.',
   },
   {
     n: '04',
-    title: 'Every 30 seconds of editing creates a revision.',
-    desc: 'Snapshots are stored automatically. Open revision history from the editor and restore any version. The document persists across server restarts.',
+    title: 'A revision snapshot every 30 seconds of activity.',
+    desc: 'Stored in MongoDB. Open revision history from the editor and restore any version. The document survives server restarts.',
   },
   {
     n: '05',
     title: 'Bold, italic, underline. Ctrl+B works.',
-    desc: 'Headings, bullet lists, numbered lists, blockquotes, code. The toolbar is there when you need it and stays out of the way when you don\'t.',
+    desc: 'Headings, lists, blockquotes, inline code. The toolbar is there when you need it and quiet when you do not.',
   },
   {
     n: '06',
-    title: 'Share the link. That\'s the whole setup.',
-    desc: 'No accounts. No invite flow. No workspace creation. Open a document, copy the URL, send it. Your team joins and starts editing.',
+    title: 'Share the link. That is the entire onboarding.',
+    desc: 'No accounts, no invite flow, no workspace setup. Copy the URL, send it, your team opens it and starts typing.',
   },
 ];
 
+// ─── Interactive mockup ───────────────────────────────────────────────────────
+//
+// A self-animating editor preview. Pure React state — no WebSocket, no Yjs.
+// Runs a continuous loop:
+//   1. First paragraph types out (narrator, no cursor label)
+//   2. Riya joins → types paragraph 2 (indigo cursor)
+//   3. Aarav joins → types paragraph 3 (green cursor)
+//   4. Jess joins  → types paragraph 4 (amber cursor)
+//   5. Pause 5s → reset → repeat
+//
+// Cleanup is handled with a closure `alive` flag so no state updates
+// fire after the component unmounts.
+
+interface Block {
+  id: string;
+  text: string;
+  typist: string | null;
+}
+
+function InteractiveMockup() {
+  const [blocks,      setBlocks]      = useState<Block[]>([]);
+  const [liveText,    setLiveText]    = useState('');
+  const [liveTypist,  setLiveTypist]  = useState<string | null>(null);
+  const [joinedUsers, setJoinedUsers] = useState<MockUser[]>([]);
+  const [saveStatus,  setSaveStatus]  = useState<'saved' | 'saving'>('saved');
+
+  const currentUser = liveTypist
+    ? MOCK_USERS.find(u => u.id === liveTypist) ?? null
+    : null;
+
+  useEffect(() => {
+    let alive = true;
+
+    // All pending timer IDs — cleared on unmount
+    const timers: ReturnType<typeof setTimeout>[]   = [];
+    const intervals: ReturnType<typeof setInterval>[] = [];
+
+    // Tracked setTimeout: no-ops if component has unmounted
+    const after = (ms: number, fn: () => void) => {
+      const t = setTimeout(() => { if (alive) fn(); }, ms);
+      timers.push(t);
+    };
+
+    // Type `text` one character at a time, then commit to blocks
+    const typeText = (
+      blockId: string,
+      text: string,
+      typist: string | null,
+      onDone: () => void,
+    ) => {
+      if (!alive) return;
+      setLiveText('');
+      setLiveTypist(typist);
+      if (typist) setSaveStatus('saving');
+
+      let i = 0;
+      const t = setInterval(() => {
+        if (!alive) { clearInterval(t); return; }
+        i++;
+        setLiveText(text.slice(0, i));
+
+        if (i >= text.length) {
+          clearInterval(t);
+          // Brief delay: save indicator flickers, then block commits
+          after(280, () => {
+            setSaveStatus('saved');
+            after(120, () => {
+              if (!alive) return;
+              setBlocks(prev => [...prev, { id: blockId, text, typist }]);
+              setLiveText('');
+              setLiveTypist(null);
+              after(380, onDone);
+            });
+          });
+        }
+      }, 36); // ~36ms per character = ~28 chars/sec, readable and fast
+
+      intervals.push(t);
+    };
+
+    // Add a user to the presence cluster with a small delay
+    const joinUser = (id: string, onDone: () => void) => {
+      if (!alive) return;
+      const user = MOCK_USERS.find(u => u.id === id);
+      if (user) setJoinedUsers(prev => [...prev, user]);
+      after(480, onDone);
+    };
+
+    // Full loop — calls itself after 5 second pause at the end
+    const run = () => {
+      if (!alive) return;
+
+      setBlocks([]);
+      setLiveText('');
+      setLiveTypist(null);
+      setJoinedUsers([]);
+      setSaveStatus('saved');
+
+      after(700, () => {
+        typeText('b1', BLOCKS[0].text, null, () => {
+          after(750, () => {
+            joinUser('riya', () => {
+              typeText('b2', BLOCKS[1].text, 'riya', () => {
+                after(750, () => {
+                  joinUser('aarav', () => {
+                    typeText('b3', BLOCKS[2].text, 'aarav', () => {
+                      after(750, () => {
+                        joinUser('jess', () => {
+                          typeText('b4', BLOCKS[3].text, 'jess', () => {
+                            // Pause so the reader can finish reading the last paragraph
+                            after(5200, run);
+                          });
+                        });
+                      });
+                    });
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
+    };
+
+    run();
+
+    return () => {
+      alive = false;
+      timers.forEach(clearTimeout);
+      intervals.forEach(clearInterval);
+    };
+  }, []);
+
+  return (
+    <div className="rounded-lg border border-border-strong bg-surface overflow-hidden shadow-card-hover">
+
+      {/* ── Window chrome ──────────────────────────────────────────────────── */}
+      <div className="flex items-center border-b border-border">
+        {/* Traffic lights */}
+        <div className="flex items-center gap-1.5 px-3 py-2.5 border-r border-border flex-shrink-0">
+          <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]" />
+          <div className="w-2.5 h-2.5 rounded-full bg-[#FEBC2E]" />
+          <div className="w-2.5 h-2.5 rounded-full bg-[#28C840]" />
+        </div>
+
+        {/* Document title + presence cluster */}
+        <div className="flex-1 px-4 py-2 flex items-center justify-between min-w-0">
+          <span className="text-xs font-medium text-text-secondary truncate">
+            Why we built Velum
+          </span>
+
+          <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+            {/* Avatars pop in as users join */}
+            <div className="flex -space-x-1.5">
+              {joinedUsers.map(u => (
+                <div
+                  key={u.id}
+                  title={u.name}
+                  className="w-5 h-5 rounded-full border border-surface-raised flex items-center justify-center text-[8px] font-bold text-white"
+                  style={{ backgroundColor: u.color }}
+                >
+                  {u.initials}
+                </div>
+              ))}
+            </div>
+            {joinedUsers.length > 0 && (
+              <span className="text-2xs text-text-muted tabular-nums">
+                {joinedUsers.length} editing
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Formatting toolbar ─────────────────────────────────────────────── */}
+      <div className="flex items-center gap-0.5 px-3 py-1.5 border-b border-border bg-surface-raised">
+        <div className="w-6 h-6 rounded text-xs font-black   text-text-muted flex items-center justify-center">B</div>
+        <div className="w-6 h-6 rounded text-xs italic        text-text-muted flex items-center justify-center">I</div>
+        <div className="w-6 h-6 rounded text-xs underline     text-text-muted flex items-center justify-center">U</div>
+        <div className="w-px h-3.5 bg-border mx-1" />
+        <div className="w-7 h-6 rounded text-[10px] font-semibold text-text-muted flex items-center justify-center">H1</div>
+        <div className="w-7 h-6 rounded text-[10px] font-semibold text-text-muted flex items-center justify-center">H2</div>
+
+        {/* Save status — right side, transitions between states */}
+        <div className="ml-auto flex items-center gap-1.5">
+          <span
+            className={cn(
+              'w-1.5 h-1.5 rounded-full transition-colors duration-300',
+              saveStatus === 'saving' ? 'bg-warning' : 'bg-success'
+            )}
+          />
+          <span className="text-2xs text-text-muted font-mono w-[3.5rem]">
+            {saveStatus === 'saving' ? 'Saving…' : 'Saved'}
+          </span>
+        </div>
+      </div>
+
+      {/* ── Document body ──────────────────────────────────────────────────── */}
+      <div className="px-7 py-5 bg-surface min-h-[236px] text-[0.82rem] leading-relaxed">
+        {/* Heading */}
+        <h2 className="text-base font-bold text-text-primary mb-0.5 leading-snug">
+          Why we built Velum
+        </h2>
+        <p className="text-2xs text-text-muted font-mono mb-4">
+          written in Velum, obviously
+        </p>
+        <div className="h-px bg-border mb-4" />
+
+        {/* Completed paragraphs */}
+        {blocks.map(block => (
+          <p key={block.id} className="text-text-secondary mb-2.5">
+            {block.text}
+          </p>
+        ))}
+
+        {/* Live paragraph — currently being typed */}
+        {liveText !== '' && (
+          <p className="text-text-secondary mb-2.5">
+            {liveText}
+            {/* Cursor wrapper — positions the name label above */}
+            <span className="relative inline-block align-middle ml-[1px]">
+              {/* Blinking cursor line */}
+              <span
+                className="inline-block w-[2px] h-[1.05em] rounded-[1px] align-middle blink"
+                style={{
+                  backgroundColor: currentUser?.color ?? 'rgb(var(--color-text-muted))',
+                }}
+              />
+              {/* Name label — only appears when a named user is typing */}
+              {currentUser && (
+                <span
+                  className="absolute bottom-full left-0 mb-[3px] px-1.5 py-[2px] rounded-[3px] text-[8px] font-semibold text-white whitespace-nowrap pointer-events-none"
+                  style={{ backgroundColor: currentUser.color }}
+                >
+                  {currentUser.name}
+                </span>
+              )}
+            </span>
+          </p>
+        )}
+      </div>
+
+      {/* ── Status bar ─────────────────────────────────────────────────────── */}
+      <div className="px-4 py-2 border-t border-border bg-surface-raised flex items-center justify-between">
+        <div className="flex items-center gap-3 flex-wrap">
+          {joinedUsers.map(u => (
+            <div key={u.id} className="flex items-center gap-1">
+              <span
+                className={cn(
+                  'w-1.5 h-1.5 rounded-full flex-shrink-0',
+                  liveTypist === u.id && 'animate-pulse'
+                )}
+                style={{ backgroundColor: u.color }}
+              />
+              <span className="text-[10px] text-text-muted font-mono">
+                {u.name}
+                {liveTypist === u.id ? ' · typing' : ''}
+              </span>
+            </div>
+          ))}
+        </div>
+        <span className="text-[10px] text-text-muted font-mono flex-shrink-0">
+          WebSocket · live
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Landing page ─────────────────────────────────────────────────────────────
+
 export default function Landing() {
-  const navigate  = useNavigate();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
   const handleCreate = async () => {
@@ -560,21 +863,19 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-bg text-text-primary">
 
-      {/* ── 2px accent line — the only decorative element ────────────────── */}
+      {/* 2px accent bar — the only decorative element ────────────────────── */}
       <div className="h-0.5 w-full bg-accent" />
 
       {/* ── Navbar ─────────────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-50 border-b border-border bg-bg/95 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-6 h-12 flex items-center justify-between">
-          {/* Logo */}
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded bg-accent flex items-center justify-center flex-shrink-0">
+            <div className="w-5 h-5 rounded bg-accent flex items-center justify-center">
               <Edit3 size={10} className="text-white" />
             </div>
             <span className="text-sm font-bold tracking-tight">Velum</span>
           </div>
 
-          {/* Nav */}
           <div className="flex items-center gap-1">
             <button
               onClick={() => navigate('/dashboard')}
@@ -590,28 +891,28 @@ export default function Landing() {
         </div>
       </nav>
 
-      {/* ── Hero ───────────────────────────────────────────────────────────── */}
+      {/* ── Hero — 5/7 asymmetric grid ──────────────────────────────────────── */}
       {/*
-        Hard asymmetric grid: 5 cols copy / 7 cols mockup.
-        On mobile: stacked, copy first.
-        No gradient, no glow, no floating shadow cloud.
+        Left column (5): headline, subhead, CTA.
+        Right column (7): interactive animated mockup.
+        The mockup gets more visual weight than the pitch — product over marketing.
       */}
       <section className="max-w-7xl mx-auto px-6 pt-14 pb-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-6">
 
-          {/* ── Left: copy ──────────────────────────────────────────────── */}
-          <div className="lg:col-span-5 flex flex-col justify-start lg:pt-4">
+          {/* ── Copy ────────────────────────────────────────────────────────── */}
+          <div className="lg:col-span-5 flex flex-col lg:pt-4">
 
-            {/* Section label */}
-            <div className="flex items-center gap-2 mb-6">
+            {/* Live signal — product indicator, not marketing badge */}
+            <div className="flex items-center gap-2 mb-7">
               <span className="w-1.5 h-1.5 rounded-full bg-success flex-shrink-0" />
               <span className="text-xs text-text-muted font-mono uppercase tracking-widest">
                 Live · WebSocket · CRDT
               </span>
             </div>
 
-            {/* Headline — left-anchored, no gradient text */}
-            <h1 className="text-[2.6rem] sm:text-5xl lg:text-[2.8rem] xl:text-5xl font-extrabold tracking-tight leading-[1.08] mb-5 text-text-primary">
+            {/* Headline — left-anchored, three short declarative lines */}
+            <h1 className="text-[2.45rem] sm:text-5xl lg:text-[2.5rem] xl:text-[2.8rem] font-extrabold tracking-tight leading-[1.07] mb-5 text-text-primary">
               Edit the same document.
               <br />
               <span className="text-text-secondary font-semibold">
@@ -621,18 +922,18 @@ export default function Landing() {
               No one overwrites anyone.
             </h1>
 
-            {/* Subhead — concrete, no abstract nouns */}
-            <p className="text-[0.95rem] text-text-secondary leading-relaxed mb-2 max-w-[360px]">
-              Velum is a shared document editor that stays live while your team works in it.
-              Changes sync character-by-character. Cursors show who's where.
-              History saves every 30 seconds.
+            {/* Subhead — specific, no abstract nouns */}
+            <p className="text-[0.94rem] text-text-secondary leading-relaxed mb-2 max-w-[360px]">
+              Velum is a shared document editor that stays live while your team
+              works in it. Changes sync character-by-character. Cursors show
+              who's where. History saves every 30 seconds.
             </p>
 
             <p className="text-sm text-text-muted mb-8 max-w-[300px]">
               No accounts. Share the URL. Everyone's in.
             </p>
 
-            {/* CTA row */}
+            {/* CTAs */}
             <div className="flex flex-wrap items-center gap-3 mb-10">
               <Button
                 size="lg"
@@ -650,7 +951,7 @@ export default function Landing() {
               </button>
             </div>
 
-            {/* Grounded tech note — not a badge */}
+            {/* Grounded tech note — not a hero badge */}
             <div className="border-t border-border pt-5">
               <p className="text-xs text-text-muted font-mono leading-relaxed">
                 Stack: Tiptap · Yjs · Hocuspocus · MongoDB
@@ -660,204 +961,38 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* ── Right: editor mockup ─────────────────────────────────────── */}
+          {/* ── Interactive mockup ──────────────────────────────────────────── */}
           <div className="lg:col-span-7">
-            <div className="rounded-lg border border-border-strong bg-surface overflow-hidden shadow-card-hover">
-
-              {/* Window chrome */}
-              <div className="flex items-center gap-0 border-b border-border">
-                {/* Traffic lights */}
-                <div className="flex items-center gap-1.5 px-3 py-2.5 border-r border-border">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#FEBC2E]" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#28C840]" />
-                </div>
-
-                {/* Document title in chrome */}
-                <div className="flex-1 px-4 py-2 flex items-center justify-between">
-                  <span className="text-xs font-medium text-text-secondary">
-                    Sprint 4 · Retrospective
-                  </span>
-
-                  {/* Presence cluster */}
-                  <div className="flex items-center gap-2">
-                    <div className="flex -space-x-1.5">
-                      {PRESENCE.map((u) => (
-                        <div
-                          key={u.initials}
-                          title={u.name}
-                          className="w-5 h-5 rounded-full border border-surface-raised flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0"
-                          style={{ backgroundColor: u.color }}
-                        >
-                          {u.initials}
-                        </div>
-                      ))}
-                    </div>
-                    <span className="text-2xs text-text-muted">
-                      3 editing
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Toolbar */}
-              <div className="flex items-center gap-0.5 px-3 py-1.5 border-b border-border bg-surface-raised">
-                {[
-                  { l: 'B', active: true  },
-                  { l: 'I', active: false },
-                  { l: 'U', active: false },
-                ].map(({ l, active }) => (
-                  <div
-                    key={l}
-                    className={cn(
-                      'w-6 h-6 rounded text-xs font-bold flex items-center justify-center',
-                      active
-                        ? 'bg-accent/20 text-accent'
-                        : 'text-text-muted hover:text-text-secondary'
-                    )}
-                  >
-                    {l}
-                  </div>
-                ))}
-                <div className="w-px h-3.5 bg-border mx-1" />
-                {['H1', 'H2'].map((l) => (
-                  <div key={l} className="w-7 h-6 rounded text-[10px] font-semibold text-text-muted flex items-center justify-center">
-                    {l}
-                  </div>
-                ))}
-                <div className="w-px h-3.5 bg-border mx-1" />
-                <div className="w-6 h-6 text-text-muted flex items-center justify-center text-xs">≡</div>
-                <div className="ml-auto flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-success" />
-                  <span className="text-2xs text-text-muted font-mono">Saved</span>
-                </div>
-              </div>
-
-              {/* Document body */}
-              <div className="px-8 py-6 bg-surface min-h-[300px] text-sm">
-
-                {/* Document heading */}
-                <div className="mb-4">
-                  <h2 className="text-lg font-bold text-text-primary leading-tight">
-                    Sprint 4 retrospective
-                  </h2>
-                  <p className="text-xs text-text-muted font-mono mt-0.5">
-                    Engineering · Thu 12 Dec · Aarav, Riya, Jess
-                  </p>
-                </div>
-
-                {/* Thin rule */}
-                <div className="h-px bg-border mb-4" />
-
-                {/* Section: what shipped */}
-                <p className="text-2xs font-semibold text-text-muted uppercase tracking-widest mb-2">
-                  What shipped
-                </p>
-                <p className="text-text-secondary leading-relaxed mb-2">
-                  Auth refactor went out Wednesday. Three days early. First time that's happened this year.
-                </p>
-                <p className="text-text-secondary leading-relaxed mb-4">
-                  WebSocket reconnection is{' '}
-                  <strong className="text-text-primary font-semibold">finally fixed</strong>
-                  {' '}— users no longer drop out of the room on flaky connections.
-                </p>
-
-                {/* Section: what's still broken */}
-                <p className="text-2xs font-semibold text-text-muted uppercase tracking-widest mb-2">
-                  What's still broken
-                </p>
-                <p className="text-text-secondary leading-relaxed mb-2">
-                  Mobile layout collapses below 375px. Aarav picking up next sprint.
-                </p>
-
-                {/* Paragraph with live cursor mid-sentence */}
-                <p className="text-text-secondary leading-relaxed mb-1 relative">
-                  Error handling on the upload flow just shows a blank screen — it needs a full
-                  {/* Riya's cursor — indigo, mid-sentence */}
-                  <span className="relative inline-block mx-[1px] align-middle">
-                    <span
-                      className="inline-block w-[2px] h-[1.1em] rounded-[1px] align-middle blink"
-                      style={{ backgroundColor: '#6366F1' }}
-                    />
-                    {/* Name label above cursor */}
-                    <span
-                      className="absolute bottom-full left-0 mb-[3px] text-[9px] font-semibold text-white px-1.5 py-[2px] rounded-[3px] whitespace-nowrap"
-                      style={{ backgroundColor: '#6366F1' }}
-                    >
-                      Riya K.
-                    </span>
-                  </span>
-                  {' '}rewrite.
-                </p>
-
-                {/* Aarav's cursor further down */}
-                <p className="text-text-secondary leading-relaxed relative">
-                  Jess is also looking at the{' '}
-                  <span className="relative inline-block mx-[1px] align-middle">
-                    <span
-                      className="inline-block w-[2px] h-[1.1em] rounded-[1px] align-middle"
-                      style={{ backgroundColor: '#10B981' }}
-                    />
-                    <span
-                      className="absolute bottom-full left-0 mb-[3px] text-[9px] font-semibold text-white px-1.5 py-[2px] rounded-[3px] whitespace-nowrap"
-                      style={{ backgroundColor: '#10B981' }}
-                    >
-                      Aarav M.
-                    </span>
-                  </span>
-                  {' '}notification bug from last sprint.
-                </p>
-              </div>
-
-              {/* Status bar */}
-              <div className="px-4 py-2 border-t border-border bg-surface-raised flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  {PRESENCE.map((u) => (
-                    <div key={u.initials} className="flex items-center gap-1.5">
-                      <span
-                        className={cn(
-                          'w-1.5 h-1.5 rounded-full flex-shrink-0',
-                          u.status === 'typing' ? 'animate-pulse' : ''
-                        )}
-                        style={{ backgroundColor: u.color }}
-                      />
-                      <span className="text-2xs text-text-muted font-mono">
-                        {u.name}
-                        {u.status === 'typing'  ? ' · typing'  : ''}
-                        {u.status === 'viewing' ? ' · viewing' : ''}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <span className="text-2xs text-text-muted font-mono">
-                  WebSocket · live
-                </span>
-              </div>
-            </div>
+            <InteractiveMockup />
           </div>
         </div>
       </section>
 
-      {/* ── Horizontal rule ─────────────────────────────────────────────────── */}
+      {/* ── Divider ─────────────────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-6">
         <div className="h-px bg-border" />
       </div>
 
       {/* ── Features — editorial numbered list ──────────────────────────────── */}
+      {/*
+        Left (4 cols): sticky anchor with statement + CTA.
+        Right (8 cols): six features as a divided numbered list.
+        Not a card grid. Not symmetric. Each item has a specific claim.
+      */}
       <section className="max-w-7xl mx-auto px-6 py-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
 
-          {/* Left anchor — sticky section label */}
+          {/* Sticky anchor */}
           <div className="lg:col-span-4 lg:sticky lg:top-20 self-start">
             <p className="text-2xs font-mono uppercase tracking-widest text-text-muted mb-3">
               What it actually does
             </p>
             <h2 className="text-2xl font-bold text-text-primary tracking-tight leading-tight mb-4">
-              Every feature
+              Every feature exists
               <br />
-              exists because
+              because someone
               <br />
-              someone needed it.
+              needed it.
             </h2>
             <p className="text-sm text-text-secondary leading-relaxed mb-6">
               No workspaces, no permission levels, no onboarding flow.
@@ -873,16 +1008,14 @@ export default function Landing() {
             </Button>
           </div>
 
-          {/* Right: numbered feature list */}
+          {/* Numbered list */}
           <div className="lg:col-span-8">
             <div className="divide-y divide-border">
-              {FEATURES.map((f) => (
+              {FEATURES.map(f => (
                 <div key={f.n} className="flex gap-5 py-5 group">
-                  {/* Number */}
-                  <span className="font-mono text-xs text-text-muted pt-0.5 flex-shrink-0 w-6">
+                  <span className="font-mono text-xs text-text-muted pt-[3px] flex-shrink-0 w-6 tabular-nums">
                     {f.n}
                   </span>
-                  {/* Content */}
                   <div>
                     <h3 className="text-sm font-semibold text-text-primary leading-snug mb-1.5 group-hover:text-accent transition-colors duration-150">
                       {f.title}
@@ -898,16 +1031,15 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Horizontal rule ─────────────────────────────────────────────────── */}
+      {/* ── Divider ─────────────────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-6">
         <div className="h-px bg-border" />
       </div>
 
-      {/* ── CTA — statement + action, not a banner ───────────────────────────── */}
+      {/* ── CTA — statement + action, left-anchored ──────────────────────────── */}
       <section className="max-w-7xl mx-auto px-6 py-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-          {/* Statement — left-aligned, not centered */}
           <div className="lg:col-span-7">
             <p className="text-2xs font-mono uppercase tracking-widest text-text-muted mb-4">
               Shared workspace model
@@ -920,15 +1052,14 @@ export default function Landing() {
             <p className="text-sm text-text-secondary leading-relaxed max-w-md mb-2">
               Velum is a shared workspace. Every document is accessible via its URL.
               No accounts, no access requests, no version confusion.
-              The document is live and everyone's in it.
+              The document is live and everyone is in it.
             </p>
-            <p className="text-xs text-text-muted leading-relaxed max-w-md">
+            <p className="text-xs text-text-muted max-w-md">
               This is intentional. The product is about real-time collaboration,
               not access control.
             </p>
           </div>
 
-          {/* Action — right side, not centered below */}
           <div className="lg:col-span-5 lg:pt-12 flex flex-col gap-3 lg:items-end">
             <Button
               size="lg"
