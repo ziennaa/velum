@@ -213,3 +213,30 @@
     @apply text-accent bg-accent/15;
   }
 }
+
+/* ── Landing page — typing cursor blink ────────────────────────────────── */
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+.cursor-blink {
+  animation: cursor-blink 1.1s ease-in-out infinite;
+}
+
+/* Subtle text shimmer for the live indicator dot */
+@keyframes live-pulse {
+  0%, 100% { opacity: 1;    transform: scale(1);    }
+  50%       { opacity: 0.5; transform: scale(0.85); }
+}
+
+.live-pulse {
+  animation: live-pulse 2s ease-in-out infinite;
+}
+
+/* Landing page — live cursor blink in mockup */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+.blink { animation: blink 1s step-end infinite; }
