@@ -497,10 +497,10 @@ import { ArrowRight, Edit3 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { documentsApi } from '@/lib/api';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
-// ─── Static data ─────────────────────────────────────────────────────────────
+// ─── Static data ──────────────────────────────────────────────────────────────
 
 interface MockUser {
   id: string;
@@ -515,8 +515,6 @@ const MOCK_USERS: MockUser[] = [
   { id: 'jess',  initials: 'JP', color: '#F59E0B', name: 'Jess P.'  },
 ];
 
-// Four paragraphs that type themselves out, each "written" by a different user.
-// The content is Velum-about-Velum — self-referential and product-specific.
 const BLOCKS: Array<{ id: string; typist: string | null; text: string }> = [
   {
     id: 'b1',
@@ -574,17 +572,6 @@ const FEATURES = [
 ];
 
 // ─── Interactive mockup ───────────────────────────────────────────────────────
-//
-// A self-animating editor preview. Pure React state — no WebSocket, no Yjs.
-// Runs a continuous loop:
-//   1. First paragraph types out (narrator, no cursor label)
-//   2. Riya joins → types paragraph 2 (indigo cursor)
-//   3. Aarav joins → types paragraph 3 (green cursor)
-//   4. Jess joins  → types paragraph 4 (amber cursor)
-//   5. Pause 5s → reset → repeat
-//
-// Cleanup is handled with a closure `alive` flag so no state updates
-// fire after the component unmounts.
 
 interface Block {
   id: string;
@@ -593,30 +580,57 @@ interface Block {
 }
 
 function InteractiveMockup() {
+  // ── Typing loop state ────────────────────────────────────────────────────
   const [blocks,      setBlocks]      = useState<Block[]>([]);
   const [liveText,    setLiveText]    = useState('');
   const [liveTypist,  setLiveTypist]  = useState<string | null>(null);
   const [joinedUsers, setJoinedUsers] = useState<MockUser[]>([]);
-  const [saveStatus,  setSaveStatus]  = useState<'saved' | 'saving'>('saved');
+
+  // ── Hover interaction state ──────────────────────────────────────────────
+  // saveStatus is now driven by BOTH the typing loop and the hover trigger.
+  // hoverSave is a separate flag so hover doesn't interfere with loop state.
+  const [loopSave,  setLoopSave]  = useState<'saved' | 'saving'>('saved');
+  const [hoverSave, setHoverSave] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+
+  // The displayed save status: hover save takes precedence during hover entry
+  const saveStatus = hoverSave ? 'saving' : loopSave;
+
+  // Track hover save timer so it can be cleared on quick mouse-out
+  const hoverSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentUser = liveTypist
     ? MOCK_USERS.find(u => u.id === liveTypist) ?? null
     : null;
 
+  // ── Hover handlers ───────────────────────────────────────────────────────
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+
+    // Briefly show "Saving…" as if the live document reacted to presence
+    setHoverSave(true);
+    if (hoverSaveTimer.current) clearTimeout(hoverSaveTimer.current);
+    hoverSaveTimer.current = setTimeout(() => {
+      setHoverSave(false);
+    }, 1400);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    // Let the timer finish naturally — snapping back instantly looks wrong
+  };
+
+  // ── Typing loop ──────────────────────────────────────────────────────────
   useEffect(() => {
     let alive = true;
+    const timers:    ReturnType<typeof setTimeout>[]   = [];
+    const intervals: ReturnType<typeof setInterval>[]  = [];
 
-    // All pending timer IDs — cleared on unmount
-    const timers: ReturnType<typeof setTimeout>[]   = [];
-    const intervals: ReturnType<typeof setInterval>[] = [];
-
-    // Tracked setTimeout: no-ops if component has unmounted
     const after = (ms: number, fn: () => void) => {
       const t = setTimeout(() => { if (alive) fn(); }, ms);
       timers.push(t);
     };
 
-    // Type `text` one character at a time, then commit to blocks
     const typeText = (
       blockId: string,
       text: string,
@@ -626,7 +640,7 @@ function InteractiveMockup() {
       if (!alive) return;
       setLiveText('');
       setLiveTypist(typist);
-      if (typist) setSaveStatus('saving');
+      if (typist) setLoopSave('saving');
 
       let i = 0;
       const t = setInterval(() => {
@@ -636,9 +650,8 @@ function InteractiveMockup() {
 
         if (i >= text.length) {
           clearInterval(t);
-          // Brief delay: save indicator flickers, then block commits
           after(280, () => {
-            setSaveStatus('saved');
+            setLoopSave('saved');
             after(120, () => {
               if (!alive) return;
               setBlocks(prev => [...prev, { id: blockId, text, typist }]);
@@ -648,12 +661,11 @@ function InteractiveMockup() {
             });
           });
         }
-      }, 36); // ~36ms per character = ~28 chars/sec, readable and fast
+      }, 36);
 
       intervals.push(t);
     };
 
-    // Add a user to the presence cluster with a small delay
     const joinUser = (id: string, onDone: () => void) => {
       if (!alive) return;
       const user = MOCK_USERS.find(u => u.id === id);
@@ -661,15 +673,13 @@ function InteractiveMockup() {
       after(480, onDone);
     };
 
-    // Full loop — calls itself after 5 second pause at the end
     const run = () => {
       if (!alive) return;
-
       setBlocks([]);
       setLiveText('');
       setLiveTypist(null);
       setJoinedUsers([]);
-      setSaveStatus('saved');
+      setLoopSave('saved');
 
       after(700, () => {
         typeText('b1', BLOCKS[0].text, null, () => {
@@ -682,7 +692,6 @@ function InteractiveMockup() {
                       after(750, () => {
                         joinUser('jess', () => {
                           typeText('b4', BLOCKS[3].text, 'jess', () => {
-                            // Pause so the reader can finish reading the last paragraph
                             after(5200, run);
                           });
                         });
@@ -703,29 +712,50 @@ function InteractiveMockup() {
       alive = false;
       timers.forEach(clearTimeout);
       intervals.forEach(clearInterval);
+      if (hoverSaveTimer.current) clearTimeout(hoverSaveTimer.current);
     };
   }, []);
 
   return (
-    <div className="rounded-lg border border-border-strong bg-surface overflow-hidden shadow-card-hover">
-
-      {/* ── Window chrome ──────────────────────────────────────────────────── */}
+    /*
+      Hover container:
+      - transition-all handles scale + shadow smoothly via CSS
+      - scale-[1.012] is subtle — just enough to feel tactile, not dramatic
+      - translateY is done via the translate class (Tailwind JIT)
+      - shadow goes from card-hover to a deeper custom shadow
+      - will-change: transform hints the GPU to composite this layer
+    */
+    <div
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className={cn(
+        'rounded-lg border border-border-strong bg-surface overflow-hidden',
+        'transition-all duration-300 ease-out',
+        'will-change-transform',
+        isHovered
+          ? [
+              'scale-[1.012]',
+              '-translate-y-1',
+              'shadow-[0_20px_60px_rgba(0,0,0,0.35),0_8px_24px_rgba(0,0,0,0.25)]',
+              'border-border',            // border lightens slightly on hover
+            ]
+          : 'shadow-card-hover translate-y-0 scale-100'
+      )}
+    >
+      {/* ── Window chrome ──────────────────────────────────────────────── */}
       <div className="flex items-center border-b border-border">
-        {/* Traffic lights */}
         <div className="flex items-center gap-1.5 px-3 py-2.5 border-r border-border flex-shrink-0">
           <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]" />
           <div className="w-2.5 h-2.5 rounded-full bg-[#FEBC2E]" />
           <div className="w-2.5 h-2.5 rounded-full bg-[#28C840]" />
         </div>
 
-        {/* Document title + presence cluster */}
         <div className="flex-1 px-4 py-2 flex items-center justify-between min-w-0">
           <span className="text-xs font-medium text-text-secondary truncate">
             Why we built Velum
           </span>
 
           <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-            {/* Avatars pop in as users join */}
             <div className="flex -space-x-1.5">
               {joinedUsers.map(u => (
                 <div
@@ -747,16 +777,21 @@ function InteractiveMockup() {
         </div>
       </div>
 
-      {/* ── Formatting toolbar ─────────────────────────────────────────────── */}
-      <div className="flex items-center gap-0.5 px-3 py-1.5 border-b border-border bg-surface-raised">
-        <div className="w-6 h-6 rounded text-xs font-black   text-text-muted flex items-center justify-center">B</div>
-        <div className="w-6 h-6 rounded text-xs italic        text-text-muted flex items-center justify-center">I</div>
-        <div className="w-6 h-6 rounded text-xs underline     text-text-muted flex items-center justify-center">U</div>
+      {/* ── Toolbar ────────────────────────────────────────────────────── */}
+      <div className={cn(
+        'flex items-center gap-0.5 px-3 py-1.5 border-b border-border',
+        'transition-colors duration-300',
+        // Toolbar background subtly lifts on hover — feels responsive
+        isHovered ? 'bg-surface-overlay' : 'bg-surface-raised'
+      )}>
+        <div className="w-6 h-6 rounded text-xs font-black text-text-muted flex items-center justify-center">B</div>
+        <div className="w-6 h-6 rounded text-xs italic      text-text-muted flex items-center justify-center">I</div>
+        <div className="w-6 h-6 rounded text-xs underline   text-text-muted flex items-center justify-center">U</div>
         <div className="w-px h-3.5 bg-border mx-1" />
         <div className="w-7 h-6 rounded text-[10px] font-semibold text-text-muted flex items-center justify-center">H1</div>
         <div className="w-7 h-6 rounded text-[10px] font-semibold text-text-muted flex items-center justify-center">H2</div>
 
-        {/* Save status — right side, transitions between states */}
+        {/* Save status — reacts to both loop and hover ─────────────────── */}
         <div className="ml-auto flex items-center gap-1.5">
           <span
             className={cn(
@@ -764,15 +799,14 @@ function InteractiveMockup() {
               saveStatus === 'saving' ? 'bg-warning' : 'bg-success'
             )}
           />
-          <span className="text-2xs text-text-muted font-mono w-[3.5rem]">
+          <span className="text-2xs text-text-muted font-mono w-[3.5rem] transition-all duration-200">
             {saveStatus === 'saving' ? 'Saving…' : 'Saved'}
           </span>
         </div>
       </div>
 
-      {/* ── Document body ──────────────────────────────────────────────────── */}
+      {/* ── Document body ──────────────────────────────────────────────── */}
       <div className="px-7 py-5 bg-surface min-h-[236px] text-[0.82rem] leading-relaxed">
-        {/* Heading */}
         <h2 className="text-base font-bold text-text-primary mb-0.5 leading-snug">
           Why we built Velum
         </h2>
@@ -792,16 +826,13 @@ function InteractiveMockup() {
         {liveText !== '' && (
           <p className="text-text-secondary mb-2.5">
             {liveText}
-            {/* Cursor wrapper — positions the name label above */}
             <span className="relative inline-block align-middle ml-[1px]">
-              {/* Blinking cursor line */}
               <span
                 className="inline-block w-[2px] h-[1.05em] rounded-[1px] align-middle blink"
                 style={{
                   backgroundColor: currentUser?.color ?? 'rgb(var(--color-text-muted))',
                 }}
               />
-              {/* Name label — only appears when a named user is typing */}
               {currentUser && (
                 <span
                   className="absolute bottom-full left-0 mb-[3px] px-1.5 py-[2px] rounded-[3px] text-[8px] font-semibold text-white whitespace-nowrap pointer-events-none"
@@ -815,8 +846,12 @@ function InteractiveMockup() {
         )}
       </div>
 
-      {/* ── Status bar ─────────────────────────────────────────────────────── */}
-      <div className="px-4 py-2 border-t border-border bg-surface-raised flex items-center justify-between">
+      {/* ── Status bar ─────────────────────────────────────────────────── */}
+      <div className={cn(
+        'px-4 py-2 border-t border-border flex items-center justify-between',
+        'transition-colors duration-300',
+        isHovered ? 'bg-surface-overlay' : 'bg-surface-raised'
+      )}>
         <div className="flex items-center gap-3 flex-wrap">
           {joinedUsers.map(u => (
             <div key={u.id} className="flex items-center gap-1">
@@ -863,10 +898,10 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-bg text-text-primary">
 
-      {/* 2px accent bar — the only decorative element ────────────────────── */}
+      {/* 2px accent bar */}
       <div className="h-0.5 w-full bg-accent" />
 
-      {/* ── Navbar ─────────────────────────────────────────────────────────── */}
+      {/* ── Navbar ───────────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-50 border-b border-border bg-bg/95 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-6 h-12 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -875,7 +910,6 @@ export default function Landing() {
             </div>
             <span className="text-sm font-bold tracking-tight">Velum</span>
           </div>
-
           <div className="flex items-center gap-1">
             <button
               onClick={() => navigate('/dashboard')}
@@ -891,19 +925,12 @@ export default function Landing() {
         </div>
       </nav>
 
-      {/* ── Hero — 5/7 asymmetric grid ──────────────────────────────────────── */}
-      {/*
-        Left column (5): headline, subhead, CTA.
-        Right column (7): interactive animated mockup.
-        The mockup gets more visual weight than the pitch — product over marketing.
-      */}
+      {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="max-w-7xl mx-auto px-6 pt-14 pb-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-6">
 
-          {/* ── Copy ────────────────────────────────────────────────────────── */}
+          {/* Copy */}
           <div className="lg:col-span-5 flex flex-col lg:pt-4">
-
-            {/* Live signal — product indicator, not marketing badge */}
             <div className="flex items-center gap-2 mb-7">
               <span className="w-1.5 h-1.5 rounded-full bg-success flex-shrink-0" />
               <span className="text-xs text-text-muted font-mono uppercase tracking-widest">
@@ -911,7 +938,6 @@ export default function Landing() {
               </span>
             </div>
 
-            {/* Headline — left-anchored, three short declarative lines */}
             <h1 className="text-[2.45rem] sm:text-5xl lg:text-[2.5rem] xl:text-[2.8rem] font-extrabold tracking-tight leading-[1.07] mb-5 text-text-primary">
               Edit the same document.
               <br />
@@ -922,7 +948,6 @@ export default function Landing() {
               No one overwrites anyone.
             </h1>
 
-            {/* Subhead — specific, no abstract nouns */}
             <p className="text-[0.94rem] text-text-secondary leading-relaxed mb-2 max-w-[360px]">
               Velum is a shared document editor that stays live while your team
               works in it. Changes sync character-by-character. Cursors show
@@ -933,7 +958,6 @@ export default function Landing() {
               No accounts. Share the URL. Everyone's in.
             </p>
 
-            {/* CTAs */}
             <div className="flex flex-wrap items-center gap-3 mb-10">
               <Button
                 size="lg"
@@ -951,7 +975,6 @@ export default function Landing() {
               </button>
             </div>
 
-            {/* Grounded tech note — not a hero badge */}
             <div className="border-t border-border pt-5">
               <p className="text-xs text-text-muted font-mono leading-relaxed">
                 Stack: Tiptap · Yjs · Hocuspocus · MongoDB
@@ -961,28 +984,21 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* ── Interactive mockup ──────────────────────────────────────────── */}
+          {/* Interactive mockup */}
           <div className="lg:col-span-7">
             <InteractiveMockup />
           </div>
         </div>
       </section>
 
-      {/* ── Divider ─────────────────────────────────────────────────────────── */}
+      {/* ── Divider ──────────────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-6">
         <div className="h-px bg-border" />
       </div>
 
-      {/* ── Features — editorial numbered list ──────────────────────────────── */}
-      {/*
-        Left (4 cols): sticky anchor with statement + CTA.
-        Right (8 cols): six features as a divided numbered list.
-        Not a card grid. Not symmetric. Each item has a specific claim.
-      */}
+      {/* ── Features ─────────────────────────────────────────────────────── */}
       <section className="max-w-7xl mx-auto px-6 py-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-
-          {/* Sticky anchor */}
           <div className="lg:col-span-4 lg:sticky lg:top-20 self-start">
             <p className="text-2xs font-mono uppercase tracking-widest text-text-muted mb-3">
               What it actually does
@@ -1008,7 +1024,6 @@ export default function Landing() {
             </Button>
           </div>
 
-          {/* Numbered list */}
           <div className="lg:col-span-8">
             <div className="divide-y divide-border">
               {FEATURES.map(f => (
@@ -1031,15 +1046,14 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Divider ─────────────────────────────────────────────────────────── */}
+      {/* ── Divider ──────────────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-6">
         <div className="h-px bg-border" />
       </div>
 
-      {/* ── CTA — statement + action, left-anchored ──────────────────────────── */}
+      {/* ── CTA ──────────────────────────────────────────────────────────── */}
       <section className="max-w-7xl mx-auto px-6 py-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
           <div className="lg:col-span-7">
             <p className="text-2xs font-mono uppercase tracking-widest text-text-muted mb-4">
               Shared workspace model
@@ -1080,7 +1094,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Footer ──────────────────────────────────────────────────────────── */}
+      {/* ── Footer ───────────────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-6">
         <div className="h-px bg-border" />
       </div>
