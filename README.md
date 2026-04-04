@@ -130,6 +130,18 @@ Collaborative editing becomes complex quickly when multiple users edit the same 
 
 ---
 
+### The Problem: "Last Writer Wins" (LWW)
+In most basic collaborative tools, if two users edit the same sentence simultaneously, the person who saves last overwrites the other.
+Data Loss: Edits are simply discarded based on timestamp.
+Poor UX: Users must wait for "turns" to avoid overwriting each other.
+
+##### Velum treats this as a distributed systems challenge rather than a simple database update.
+
+### The Solution: CRDT Math
+Velum implements Conflict-free Replicated Data Types (CRDTs) to ensure that every user's intent is preserved, regardless of network latency or sync order.
+
+---
+
 ###  Repository Links
 
 - Main repo: https://github.com/ziennaa/velum  
