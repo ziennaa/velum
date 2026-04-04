@@ -1,16 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
-  // 'class' strategy: dark mode is controlled by a .dark class on <html>
-  // This is the safest approach — we control exactly when it toggles.
   darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        // ── Theme-adaptive tokens ────────────────────────────────────────────
-        // Values are RGB channels (e.g. "9 9 11") defined in globals.css.
-        // The <alpha-value> placeholder lets Tailwind opacity modifiers work:
-        //   bg-bg/80 → background-color: rgb(var(--color-bg) / 0.8)
         bg: 'rgb(var(--color-bg) / <alpha-value>)',
         surface: {
           DEFAULT: 'rgb(var(--color-surface) / <alpha-value>)',
@@ -26,14 +20,14 @@ export default {
           secondary: 'rgb(var(--color-text-secondary) / <alpha-value>)',
           muted:     'rgb(var(--color-text-muted) / <alpha-value>)',
         },
-        // ── Accent: same hue in both themes, hover lightens/darkens ─────────
         accent: {
-          DEFAULT: '#6366F1',
+          // CHANGED: #6366F1 indigo → #187282 Stormy Teal
+          DEFAULT: '#187282',
           hover:   'rgb(var(--color-accent-hover) / <alpha-value>)',
-          muted:   'rgb(99 102 241 / 0.15)',
-          glow:    'rgb(99 102 241 / 0.30)',
+          // muted and glow updated to teal channels
+          muted:   'rgb(24 114 130 / 0.15)',
+          glow:    'rgb(24 114 130 / 0.30)',
         },
-        // ── Semantic colors: fixed in both themes ───────────────────────────
         success: '#34D399',
         warning: '#FBBF24',
         danger:  '#F87171',
@@ -54,11 +48,11 @@ export default {
         '2xl': '1.25rem',
       },
       boxShadow: {
-        // Shadows are lighter on light bg, heavier on dark bg — handled via CSS var
         card:         'var(--shadow-card)',
         'card-hover': 'var(--shadow-card-hover)',
-        glow:    '0 0 20px rgba(99,102,241,0.25)',
-        'glow-sm':'0 0 10px rgba(99,102,241,0.2)',
+        // CHANGED: indigo rgba → teal rgba
+        glow:    '0 0 20px rgba(24,114,130,0.25)',
+        'glow-sm':'0 0 10px rgba(24,114,130,0.20)',
       },
       animation: {
         'fade-in':        'fadeIn 0.2s ease-out',
@@ -83,8 +77,9 @@ export default {
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic':  'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
-        'hero-glow':       'radial-gradient(ellipse 60% 40% at 50% 0%, rgba(99,102,241,0.12) 0%, transparent 70%)',
-        'card-gradient':   'linear-gradient(135deg, rgba(99,102,241,0.05) 0%, transparent 60%)',
+        // CHANGED: teal glow in hero gradient
+        'hero-glow': 'radial-gradient(ellipse 60% 40% at 50% 0%, rgba(24,114,130,0.10) 0%, transparent 70%)',
+        'card-gradient': 'linear-gradient(135deg, rgba(24,114,130,0.04) 0%, transparent 60%)',
       },
     },
   },

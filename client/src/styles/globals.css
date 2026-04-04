@@ -4,25 +4,25 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Theme tokens ─────────────────────────────────────────────────────────────
-   All values are space-separated RGB channels (no commas, no rgb() wrapper).
-   This lets Tailwind's opacity modifier syntax work: bg-bg/80 → rgb(var(--color-bg) / 0.8)
-   ──────────────────────────────────────────────────────────────────────────── */
+/* ── Theme tokens ──────────────────────────────────────────────────────────────
+   Space-separated RGB channels. No rgb() wrapper.
+   Allows Tailwind opacity modifier: bg-bg/80 → rgb(var(--color-bg) / 0.8)
+   ────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Light theme — warm neutral whites, not pure white */
-  --color-bg:              248 248 250;   /* #F8F8FA */
-  --color-surface:         255 255 255;   /* #FFFFFF */
-  --color-surface-raised:  242 242 245;   /* #F2F2F5 */
-  --color-surface-overlay: 232 232 239;   /* #E8E8EF */
-  --color-border:          226 226 232;   /* #E2E2E8 */
-  --color-border-strong:   200 200 214;   /* #C8C8D6 */
-  --color-text-primary:    15  15  20;    /* #0F0F14 */
-  --color-text-secondary:  82  82  91;    /* #52525B */
-  --color-text-muted:      161 161 170;   /* #A1A1AA */
-  --color-accent-hover:    79  70  229;   /* #4F46E5 — darker indigo for light bg */
+  /* Light theme */
+  --color-bg:              248 248 250;
+  --color-surface:         255 255 255;
+  --color-surface-raised:  242 242 245;
+  --color-surface-overlay: 232 232 239;
+  --color-border:          226 226 232;
+  --color-border-strong:   200 200 214;
+  --color-text-primary:    15  15  20;
+  --color-text-secondary:  82  82  91;
+  --color-text-muted:      161 161 170;
+  /* CHANGED: Dark Teal #1E4D56 — darker hover for light backgrounds */
+  --color-accent-hover:    30  77  86;
 
-  /* Lighter shadows for light mode */
   --shadow-card:       0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.05);
   --shadow-card-hover: 0 4px 16px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.07);
 
@@ -30,26 +30,26 @@
 }
 
 .dark {
-  /* Dark theme — current design (unchanged) */
-  --color-bg:              9   9   11;    /* #09090B */
-  --color-surface:         17  17  23;    /* #111117 */
-  --color-surface-raised:  22  22  31;    /* #16161F */
-  --color-surface-overlay: 28  28  38;    /* #1C1C26 */
-  --color-border:          30  30  40;    /* #1E1E28 */
-  --color-border-strong:   42  42  54;    /* #2A2A36 */
-  --color-text-primary:    244 244 246;   /* #F4F4F6 */
-  --color-text-secondary:  139 139 158;   /* #8B8B9E */
-  --color-text-muted:      82  82  106;   /* #52526A */
-  --color-accent-hover:    129 140 248;   /* #818CF8 — lighter indigo for dark bg */
+  /* Dark theme */
+  --color-bg:              9   9   11;
+  --color-surface:         17  17  23;
+  --color-surface-raised:  22  22  31;
+  --color-surface-overlay: 28  28  38;
+  --color-border:          30  30  40;
+  --color-border-strong:   42  42  54;
+  --color-text-primary:    244 244 246;
+  --color-text-secondary:  139 139 158;
+  --color-text-muted:      82  82  106;
+  /* CHANGED: Pacific Blue #3DA0AA — lighter, more vibrant hover for dark backgrounds */
+  --color-accent-hover:    61  160 170;
 
-  /* Heavier shadows for dark mode */
   --shadow-card:       0 1px 3px rgba(0,0,0,0.40), 0 1px 2px rgba(0,0,0,0.30);
   --shadow-card-hover: 0 4px 16px rgba(0,0,0,0.50), 0 2px 6px rgba(0,0,0,0.40);
 
   color-scheme: dark;
 }
 
-/* ── Base ─────────────────────────────────────────────────────────────────── */
+/* ── Base ──────────────────────────────────────────────────────────────────── */
 
 @layer base {
   * {
@@ -59,7 +59,6 @@
   }
 
   html {
-    /* Use CSS vars so html background adapts immediately (avoids flash) */
     background-color: rgb(var(--color-bg));
     color: rgb(var(--color-text-primary));
     font-family: 'Inter', system-ui, sans-serif;
@@ -73,7 +72,6 @@
     min-height: 100vh;
   }
 
-  /* Scrollbar */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
@@ -84,15 +82,16 @@
     background: rgb(var(--color-border-strong) / 0.7);
   }
 
-  /* Selection highlight */
-  ::selection { background: rgba(99, 102, 241, 0.25); }
+  /* CHANGED: teal selection highlight */
+  ::selection { background: rgba(61, 160, 170, 0.25); }
 }
 
-/* ── Tiptap / ProseMirror ─────────────────────────────────────────────────── */
+/* ── Tiptap / ProseMirror ──────────────────────────────────────────────────── */
 
 .tiptap-editor .ProseMirror {
   outline: none;
-  caret-color: #6366F1;
+  /* CHANGED: teal caret — Pacific Blue is visible but not aggressive */
+  caret-color: #3DA0AA;
   min-height: calc(100vh - 180px);
   padding: 3rem 4rem;
   max-width: 860px;
@@ -107,7 +106,6 @@
   margin-bottom: 0.75em;
 }
 
-/* Placeholder */
 .tiptap-editor .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   float: left;
@@ -152,11 +150,13 @@
   border: 1px solid rgb(var(--color-border-strong));
   border-radius: 4px;
   padding: 0.15em 0.4em;
-  color: #A78BFA; /* accent purple — intentionally fixed */
+  /* Keeping violet for inline code — it complements teal nicely */
+  color: #A78BFA;
 }
 
 .tiptap-editor .ProseMirror blockquote {
-  border-left: 3px solid #6366F1;
+  /* CHANGED: teal blockquote border — Stormy Teal */
+  border-left: 3px solid #187282;
   padding-left: 1rem;
   color: rgb(var(--color-text-secondary));
   font-style: italic;
@@ -171,7 +171,7 @@
 
 .tiptap-editor .ProseMirror li { margin-bottom: 0.25em; }
 
-/* ── Collaboration cursors ────────────────────────────────────────────────── */
+/* ── Collaboration cursors ─────────────────────────────────────────────────── */
 
 .collaboration-cursor__label {
   font-size: 11px;
@@ -200,7 +200,7 @@
   pointer-events: none;
 }
 
-/* ── Toolbar buttons ──────────────────────────────────────────────────────── */
+/* ── Toolbar buttons ───────────────────────────────────────────────────────── */
 
 @layer components {
   .toolbar-btn {
@@ -214,27 +214,7 @@
   }
 }
 
-/* ── Landing page — typing cursor blink ────────────────────────────────── */
-@keyframes cursor-blink {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0; }
-}
-
-.cursor-blink {
-  animation: cursor-blink 1.1s ease-in-out infinite;
-}
-
-/* Subtle text shimmer for the live indicator dot */
-@keyframes live-pulse {
-  0%, 100% { opacity: 1;    transform: scale(1);    }
-  50%       { opacity: 0.5; transform: scale(0.85); }
-}
-
-.live-pulse {
-  animation: live-pulse 2s ease-in-out infinite;
-}
-
-/* Landing page — live cursor blink in mockup */
+/* ── Landing page cursor blink ─────────────────────────────────────────────── */
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0; }

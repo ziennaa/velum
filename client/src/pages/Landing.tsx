@@ -510,7 +510,7 @@ interface MockUser {
 }
 
 const MOCK_USERS: MockUser[] = [
-  { id: 'riya',  initials: 'RK', color: '#6366F1', name: 'Riya K.'  },
+  { id: 'riya',  initials: 'RK', color: '#3DA0AA', name: 'Riya K.'  },
   { id: 'aarav', initials: 'AM', color: '#10B981', name: 'Aarav M.' },
   { id: 'jess',  initials: 'JP', color: '#F59E0B', name: 'Jess P.'  },
 ];

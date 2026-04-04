@@ -5,7 +5,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-
 export function formatRelativeTime(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
@@ -37,24 +36,29 @@ export function formatDateTime(dateString: string): string {
   });
 }
 
+// CHANGED: teal palette replaces indigo as the first cursor color.
+// Cursor colors must be distinct so collaborators are visually separable.
+// Pacific Blue (#3DA0AA) replaces indigo (#6366F1) as slot 0 — brand-aligned.
+// Tropical Teal (#55ABB1) replaces old teal (#14B8A6) as slot 6 — slightly warmer.
+// All other colors kept for maximum variety across collaborators.
 export const CURSOR_COLORS = [
-  '#6366F1', // indigo
-  '#8B5CF6', // violet
-  '#EC4899', // pink
-  '#F59E0B', // amber
-  '#10B981', // emerald
-  '#3B82F6', // blue
-  '#14B8A6', // teal
-  '#F97316', // orange
-  '#EF4444', // rose
-  '#84CC16', // lime
+  '#3DA0AA', // Pacific Blue   — brand teal, replaces indigo
+  '#8B5CF6', // violet         — kept
+  '#EC4899', // pink           — kept
+  '#F59E0B', // amber          — kept
+  '#10B981', // emerald        — kept
+  '#3B82F6', // blue           — kept
+  '#55ABB1', // Tropical Teal  — replaces old teal #14B8A6
+  '#F97316', // orange         — kept
+  '#EF4444', // rose           — kept
+  '#84CC16', // lime           — kept
 ] as const;
 
 const ADJECTIVES = ['Swift', 'Silent', 'Clever', 'Bright', 'Calm', 'Brave', 'Keen', 'Bold'];
 const NOUNS = ['Fox', 'Owl', 'Wolf', 'Hawk', 'Bear', 'Lynx', 'Raven', 'Crane'];
 
 export function generateDisplayName(): string {
-  const adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
+  const adj  = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
   const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
   return `${adj} ${noun}`;
 }
