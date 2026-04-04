@@ -133,8 +133,6 @@ Collaborative editing becomes complex quickly when multiple users edit the same 
 ###  Repository Links
 
 - Main repo: https://github.com/ziennaa/velum  
-- Frontend notes: `./client/README.md`  
-- Backend notes: `./server/README.md`  
 
 ## Stack
 
