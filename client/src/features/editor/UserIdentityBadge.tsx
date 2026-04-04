@@ -64,7 +64,7 @@ export function UserIdentityBadge({
   return (
     <div className="relative flex-shrink-0" ref={containerRef}>
 
-      {/* ── Badge trigger ──────────────────────────────────────── */}
+      {/* ── Badge trigger ─────────────────────────────────────────────── */}
       <button
         onClick={() => setIsOpen((v) => !v)}
         className={cn(
@@ -76,40 +76,40 @@ export function UserIdentityBadge({
         )}
         title="Edit your display name and colour"
       >
-        {/* Coloured avatar */}
         <div
           className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
           style={{ backgroundColor: user.color }}
         >
           {user.initials}
         </div>
-
-        {/* Name */}
         <span className="text-text-secondary max-w-[72px] truncate leading-none">
           {user.name}
         </span>
-
-        {/* "You" label */}
         <span className="text-text-muted text-[10px] leading-none">·&nbsp;You</span>
-
         <ChevronDown
           size={10}
           className={cn(
-            'text-text-muted transition-transform duration-150',
+            'text-text-muted transition-transform duration-150 flex-shrink-0',
             isOpen && 'rotate-180'
           )}
         />
       </button>
 
-      {/* ── Edit popover ───────────────────────────────────────── */}
+      {/* ── Edit popover ──────────────────────────────────────────────── */}
       {isOpen && (
-        <div className="absolute right-0 top-9 z-50 w-60 bg-surface-raised border border-border-strong rounded-xl shadow-card-hover animate-fade-in p-3">
+        <div className="absolute right-0 top-9 z-50 w-64 bg-surface-raised border border-border-strong rounded-xl shadow-card-hover animate-fade-in p-3">
 
-          {/* Name input */}
-          <p className="text-[10px] text-text-muted uppercase tracking-wider mb-1.5">
+          {/* Name section */}
+          <p className="text-[10px] text-text-muted uppercase tracking-wider mb-2">
             Display name
           </p>
-          <div className="flex items-center gap-1.5 mb-3">
+
+          {/* 
+            FIX: The row uses overflow-hidden on the wrapper and min-w-0 on
+            the input so it shrinks properly. The check button is flex-shrink-0
+            so it never gets squeezed — it stays inside the container.
+          */}
+          <div className="flex items-center gap-1.5 mb-3 w-full overflow-hidden">
             {/* Live avatar preview */}
             <div
               className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0 transition-colors duration-150"
@@ -118,6 +118,7 @@ export function UserIdentityBadge({
               {getInitials(draftName || user.name)}
             </div>
 
+            {/* Input — min-w-0 lets it shrink when siblings need space */}
             <input
               ref={inputRef}
               value={draftName}
@@ -126,7 +127,7 @@ export function UserIdentityBadge({
               placeholder={user.name}
               maxLength={30}
               className={cn(
-                'flex-1 h-7 px-2 rounded-md text-xs',
+                'flex-1 min-w-0 h-7 px-2 rounded-md text-xs',
                 'bg-surface-overlay border border-border',
                 'text-text-primary placeholder:text-text-muted',
                 'outline-none transition-all',
@@ -134,6 +135,7 @@ export function UserIdentityBadge({
               )}
             />
 
+            {/* Check button — flex-shrink-0 keeps it from being pushed out */}
             <button
               onClick={handleSave}
               className={cn(
@@ -148,7 +150,7 @@ export function UserIdentityBadge({
           </div>
 
           {/* Colour picker */}
-          <p className="text-[10px] text-text-muted uppercase tracking-wider mb-1.5">
+          <p className="text-[10px] text-text-muted uppercase tracking-wider mb-2">
             Cursor colour
           </p>
           <div className="flex gap-1.5 flex-wrap">
@@ -157,12 +159,12 @@ export function UserIdentityBadge({
                 key={c}
                 onClick={() => onUpdateColor(c)}
                 title={c}
-                className="w-5 h-5 rounded-full transition-transform duration-150 hover:scale-110 focus:outline-none"
+                className="w-5 h-5 rounded-full transition-transform duration-150 hover:scale-110 focus:outline-none flex-shrink-0"
                 style={{
                   backgroundColor: c,
                   boxShadow:
                     user.color === c
-                      ? `0 0 0 2px #16161F, 0 0 0 3.5px ${c}`
+                      ? `0 0 0 2px rgb(var(--color-surface-raised)), 0 0 0 3.5px ${c}`
                       : 'none',
                   transform: user.color === c ? 'scale(1.2)' : undefined,
                 }}
