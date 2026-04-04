@@ -4,13 +4,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Theme tokens ──────────────────────────────────────────────────────────────
-   Space-separated RGB channels. No rgb() wrapper.
-   Allows Tailwind opacity modifier: bg-bg/80 → rgb(var(--color-bg) / 0.8)
-   ────────────────────────────────────────────────────────────────────────── */
+
 
 :root {
-  /* Light theme */
   --color-bg:              248 248 250;
   --color-surface:         255 255 255;
   --color-surface-raised:  242 242 245;
@@ -20,7 +16,6 @@
   --color-text-primary:    15  15  20;
   --color-text-secondary:  82  82  91;
   --color-text-muted:      161 161 170;
-  /* CHANGED: Dark Teal #1E4D56 — darker hover for light backgrounds */
   --color-accent-hover:    30  77  86;
 
   --shadow-card:       0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.05);
@@ -30,7 +25,6 @@
 }
 
 .dark {
-  /* Dark theme */
   --color-bg:              9   9   11;
   --color-surface:         17  17  23;
   --color-surface-raised:  22  22  31;
@@ -40,7 +34,6 @@
   --color-text-primary:    244 244 246;
   --color-text-secondary:  139 139 158;
   --color-text-muted:      82  82  106;
-  /* CHANGED: Pacific Blue #3DA0AA — lighter, more vibrant hover for dark backgrounds */
   --color-accent-hover:    61  160 170;
 
   --shadow-card:       0 1px 3px rgba(0,0,0,0.40), 0 1px 2px rgba(0,0,0,0.30);
@@ -49,7 +42,6 @@
   color-scheme: dark;
 }
 
-/* ── Base ──────────────────────────────────────────────────────────────────── */
 
 @layer base {
   * {
@@ -82,15 +74,12 @@
     background: rgb(var(--color-border-strong) / 0.7);
   }
 
-  /* CHANGED: teal selection highlight */
   ::selection { background: rgba(61, 160, 170, 0.25); }
 }
 
-/* ── Tiptap / ProseMirror ──────────────────────────────────────────────────── */
 
 .tiptap-editor .ProseMirror {
   outline: none;
-  /* CHANGED: teal caret — Pacific Blue is visible but not aggressive */
   caret-color: #3DA0AA;
   min-height: calc(100vh - 180px);
   padding: 3rem 4rem;
@@ -150,12 +139,10 @@
   border: 1px solid rgb(var(--color-border-strong));
   border-radius: 4px;
   padding: 0.15em 0.4em;
-  /* Keeping violet for inline code — it complements teal nicely */
   color: #A78BFA;
 }
 
 .tiptap-editor .ProseMirror blockquote {
-  /* CHANGED: teal blockquote border — Stormy Teal */
   border-left: 3px solid #187282;
   padding-left: 1rem;
   color: rgb(var(--color-text-secondary));
@@ -171,7 +158,6 @@
 
 .tiptap-editor .ProseMirror li { margin-bottom: 0.25em; }
 
-/* ── Collaboration cursors ─────────────────────────────────────────────────── */
 
 .collaboration-cursor__label {
   font-size: 11px;
@@ -200,7 +186,6 @@
   pointer-events: none;
 }
 
-/* ── Toolbar buttons ───────────────────────────────────────────────────────── */
 
 @layer components {
   .toolbar-btn {
@@ -214,7 +199,6 @@
   }
 }
 
-/* ── Landing page cursor blink ─────────────────────────────────────────────── */
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0; }

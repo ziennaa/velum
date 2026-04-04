@@ -500,7 +500,6 @@ import { documentsApi } from '@/lib/api';
 import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
-// ─── Static data ──────────────────────────────────────────────────────────────
 
 interface MockUser {
   id: string;
@@ -571,7 +570,6 @@ const FEATURES = [
   },
 ];
 
-// ─── Interactive mockup ───────────────────────────────────────────────────────
 
 interface Block {
   id: string;
@@ -580,34 +578,27 @@ interface Block {
 }
 
 function InteractiveMockup() {
-  // ── Typing loop state ────────────────────────────────────────────────────
   const [blocks,      setBlocks]      = useState<Block[]>([]);
   const [liveText,    setLiveText]    = useState('');
   const [liveTypist,  setLiveTypist]  = useState<string | null>(null);
   const [joinedUsers, setJoinedUsers] = useState<MockUser[]>([]);
 
-  // ── Hover interaction state ──────────────────────────────────────────────
-  // saveStatus is now driven by BOTH the typing loop and the hover trigger.
-  // hoverSave is a separate flag so hover doesn't interfere with loop state.
+
   const [loopSave,  setLoopSave]  = useState<'saved' | 'saving'>('saved');
   const [hoverSave, setHoverSave] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
-  // The displayed save status: hover save takes precedence during hover entry
   const saveStatus = hoverSave ? 'saving' : loopSave;
 
-  // Track hover save timer so it can be cleared on quick mouse-out
   const hoverSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentUser = liveTypist
     ? MOCK_USERS.find(u => u.id === liveTypist) ?? null
     : null;
 
-  // ── Hover handlers ───────────────────────────────────────────────────────
   const handleMouseEnter = () => {
     setIsHovered(true);
 
-    // Briefly show "Saving…" as if the live document reacted to presence
     setHoverSave(true);
     if (hoverSaveTimer.current) clearTimeout(hoverSaveTimer.current);
     hoverSaveTimer.current = setTimeout(() => {
@@ -617,10 +608,8 @@ function InteractiveMockup() {
 
   const handleMouseLeave = () => {
     setIsHovered(false);
-    // Let the timer finish naturally — snapping back instantly looks wrong
   };
 
-  // ── Typing loop ──────────────────────────────────────────────────────────
   useEffect(() => {
     let alive = true;
     const timers:    ReturnType<typeof setTimeout>[]   = [];
@@ -717,14 +706,7 @@ function InteractiveMockup() {
   }, []);
 
   return (
-    /*
-      Hover container:
-      - transition-all handles scale + shadow smoothly via CSS
-      - scale-[1.012] is subtle — just enough to feel tactile, not dramatic
-      - translateY is done via the translate class (Tailwind JIT)
-      - shadow goes from card-hover to a deeper custom shadow
-      - will-change: transform hints the GPU to composite this layer
-    */
+    
     <div
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -737,12 +719,11 @@ function InteractiveMockup() {
               'scale-[1.012]',
               '-translate-y-1',
               'shadow-[0_20px_60px_rgba(0,0,0,0.35),0_8px_24px_rgba(0,0,0,0.25)]',
-              'border-border',            // border lightens slightly on hover
+              'border-border',       
             ]
           : 'shadow-card-hover translate-y-0 scale-100'
       )}
     >
-      {/* ── Window chrome ──────────────────────────────────────────────── */}
       <div className="flex items-center border-b border-border">
         <div className="flex items-center gap-1.5 px-3 py-2.5 border-r border-border flex-shrink-0">
           <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]" />
@@ -777,11 +758,9 @@ function InteractiveMockup() {
         </div>
       </div>
 
-      {/* ── Toolbar ────────────────────────────────────────────────────── */}
       <div className={cn(
         'flex items-center gap-0.5 px-3 py-1.5 border-b border-border',
         'transition-colors duration-300',
-        // Toolbar background subtly lifts on hover — feels responsive
         isHovered ? 'bg-surface-overlay' : 'bg-surface-raised'
       )}>
         <div className="w-6 h-6 rounded text-xs font-black text-text-muted flex items-center justify-center">B</div>
@@ -791,7 +770,6 @@ function InteractiveMockup() {
         <div className="w-7 h-6 rounded text-[10px] font-semibold text-text-muted flex items-center justify-center">H1</div>
         <div className="w-7 h-6 rounded text-[10px] font-semibold text-text-muted flex items-center justify-center">H2</div>
 
-        {/* Save status — reacts to both loop and hover ─────────────────── */}
         <div className="ml-auto flex items-center gap-1.5">
           <span
             className={cn(
@@ -805,7 +783,6 @@ function InteractiveMockup() {
         </div>
       </div>
 
-      {/* ── Document body ──────────────────────────────────────────────── */}
       <div className="px-7 py-5 bg-surface min-h-[236px] text-[0.82rem] leading-relaxed">
         <h2 className="text-base font-bold text-text-primary mb-0.5 leading-snug">
           Why we built Velum
@@ -815,14 +792,12 @@ function InteractiveMockup() {
         </p>
         <div className="h-px bg-border mb-4" />
 
-        {/* Completed paragraphs */}
         {blocks.map(block => (
           <p key={block.id} className="text-text-secondary mb-2.5">
             {block.text}
           </p>
         ))}
 
-        {/* Live paragraph — currently being typed */}
         {liveText !== '' && (
           <p className="text-text-secondary mb-2.5">
             {liveText}
@@ -846,7 +821,6 @@ function InteractiveMockup() {
         )}
       </div>
 
-      {/* ── Status bar ─────────────────────────────────────────────────── */}
       <div className={cn(
         'px-4 py-2 border-t border-border flex items-center justify-between',
         'transition-colors duration-300',
@@ -877,7 +851,6 @@ function InteractiveMockup() {
   );
 }
 
-// ─── Landing page ─────────────────────────────────────────────────────────────
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -898,10 +871,8 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-bg text-text-primary">
 
-      {/* 2px accent bar */}
       <div className="h-0.5 w-full bg-accent" />
 
-      {/* ── Navbar ───────────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-50 border-b border-border bg-bg/95 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-6 h-12 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -925,11 +896,9 @@ export default function Landing() {
         </div>
       </nav>
 
-      {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="max-w-7xl mx-auto px-6 pt-14 pb-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-6">
 
-          {/* Copy */}
           <div className="lg:col-span-5 flex flex-col lg:pt-4">
             <div className="flex items-center gap-2 mb-7">
               <span className="w-1.5 h-1.5 rounded-full bg-success flex-shrink-0" />
@@ -992,19 +961,16 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* Interactive mockup */}
           <div className="lg:col-span-7">
             <InteractiveMockup />
           </div>
         </div>
       </section>
 
-      {/* ── Divider ──────────────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-6">
         <div className="h-px bg-border" />
       </div>
 
-      {/* ── Features ─────────────────────────────────────────────────────── */}
       <section className="max-w-7xl mx-auto px-6 py-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           <div className="lg:col-span-4 lg:sticky lg:top-20 self-start">
@@ -1054,12 +1020,10 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Divider ──────────────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-6">
         <div className="h-px bg-border" />
       </div>
 
-      {/* ── CTA ──────────────────────────────────────────────────────────── */}
       <section className="max-w-7xl mx-auto px-6 py-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           <div className="lg:col-span-7">
@@ -1102,7 +1066,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Footer ───────────────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-6">
         <div className="h-px bg-border" />
       </div>

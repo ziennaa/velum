@@ -52,10 +52,7 @@ export default function Dashboard() {
   };
 
   return (
-    // CHANGED: bg-[#09090B] → bg-bg (adapts to light/dark via CSS var)
     <div className="min-h-screen bg-bg">
-      {/* ── Top bar ────────────────────────────────────────────────────────── */}
-      {/* CHANGED: bg-[#09090B]/90 → bg-bg/90 */}
       <header className="sticky top-0 z-20 h-14 border-b border-border bg-bg/90 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 h-full flex items-center justify-between">
           <button
@@ -76,7 +73,6 @@ export default function Dashboard() {
             >
               <RefreshCw size={14} />
             </button>
-            {/* Theme toggle — lives next to the primary action */}
             <ThemeToggle />
             <Button
               size="sm"
@@ -89,20 +85,16 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* ── Main content ───────────────────────────────────────────────────── */}
       <main className="max-w-6xl mx-auto px-6 py-10">
-        {/* Page header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-text-primary tracking-tight mb-1">
             Documents
           </h1>
-          {/* ADDED: shared workspace clarification — sets judge expectations */}
           <p className="text-sm text-text-secondary">
             Shared workspace · Open any document to collaborate in real time
           </p>
         </div>
 
-        {/* Search */}
         {documents.length > 0 && (
           <div className="mb-6 max-w-sm">
             <Input
@@ -114,7 +106,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Error state */}
         {error && (
           <div className="p-4 rounded-xl bg-danger/10 border border-danger/20 text-sm text-danger mb-6">
             {error} —{' '}
@@ -124,7 +115,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Content */}
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {[...Array(6)].map((_, i) => (
@@ -158,7 +148,6 @@ export default function Dashboard() {
         )}
       </main>
 
-      {/* ── Create Document Modal ───────────────────────────────────────────── */}
       <Modal
         isOpen={showCreateModal}
         onClose={() => {

@@ -21,10 +21,8 @@ export default {
           muted:     'rgb(var(--color-text-muted) / <alpha-value>)',
         },
         accent: {
-          // CHANGED: #6366F1 indigo → #187282 Stormy Teal
           DEFAULT: '#187282',
           hover:   'rgb(var(--color-accent-hover) / <alpha-value>)',
-          // muted and glow updated to teal channels
           muted:   'rgb(24 114 130 / 0.15)',
           glow:    'rgb(24 114 130 / 0.30)',
         },
@@ -50,7 +48,6 @@ export default {
       boxShadow: {
         card:         'var(--shadow-card)',
         'card-hover': 'var(--shadow-card-hover)',
-        // CHANGED: indigo rgba → teal rgba
         glow:    '0 0 20px rgba(24,114,130,0.25)',
         'glow-sm':'0 0 10px rgba(24,114,130,0.20)',
       },
@@ -77,7 +74,6 @@ export default {
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic':  'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
-        // CHANGED: teal glow in hero gradient
         'hero-glow': 'radial-gradient(ellipse 60% 40% at 50% 0%, rgba(24,114,130,0.10) 0%, transparent 70%)',
         'card-gradient': 'linear-gradient(135deg, rgba(24,114,130,0.04) 0%, transparent 60%)',
       },

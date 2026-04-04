@@ -91,7 +91,6 @@ export default function Editor() {
 
   if (!documentId) {
     return (
-      // CHANGED: bg-[#09090B] → bg-bg
       <div className="min-h-screen flex items-center justify-center bg-bg">
         <div className="text-center">
           <p className="text-text-secondary mb-4">Invalid document link.</p>
@@ -104,10 +103,8 @@ export default function Editor() {
   }
 
   return (
-    // CHANGED: bg-[#09090B] → bg-bg
     <div className="h-screen flex flex-col bg-bg overflow-hidden">
 
-      {/* Identity modal — shown once on first visit */}
       {!user.hasChosenName && (
         <IdentityModal
           defaultName={user.name}
@@ -117,8 +114,6 @@ export default function Editor() {
         />
       )}
 
-      {/* ── Top Navigation Bar ──────────────────────────────────────────── */}
-      {/* CHANGED: bg-surface/60 stays as-is (already uses named token) */}
       <header className="flex-shrink-0 h-14 border-b border-border bg-surface/60 backdrop-blur-md flex items-center px-4 gap-3 z-20">
 
         <button
@@ -137,7 +132,6 @@ export default function Editor() {
           </div>
         </div>
 
-        {/* Editable document title */}
         <div className="flex-1 min-w-0">
           {isEditingTitle ? (
             <input
@@ -166,7 +160,6 @@ export default function Editor() {
           )}
         </div>
 
-        {/* Right cluster */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <CollaborationStatus status={connectionStatus} saveStatus={saveStatus} />
 
@@ -182,7 +175,6 @@ export default function Editor() {
 
           <div className="w-px h-4 bg-border" />
 
-          {/* Theme toggle */}
           <ThemeToggle />
 
           <Button
@@ -211,7 +203,6 @@ export default function Editor() {
         </div>
       </header>
 
-      {/* ── Editor area ─────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
         <div
           className={cn(

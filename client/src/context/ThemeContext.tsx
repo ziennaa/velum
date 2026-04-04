@@ -25,9 +25,7 @@ import {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored === 'light' || stored === 'dark') return stored;
     } catch {
-      // localStorage unavailable
     }
-    // Default to dark — matches the app's design direction
     return 'dark';
   }
   

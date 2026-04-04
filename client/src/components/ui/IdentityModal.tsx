@@ -41,19 +41,19 @@ export function IdentityModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
+      {/*backdrop*/}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
         onClick={onDismiss}
       />
 
-      {/* Panel */}
+      {/*panel*/}
       <div className="relative z-10 w-full max-w-sm bg-surface border border-border-strong rounded-2xl shadow-card-hover animate-slide-up">
         
-        {/* Top section */}
+        {/*top section*/}
         <div className="px-6 pt-6 pb-5">
           
-          {/* Avatar preview + heading */}
+          {/*avatar preview + heading*/}
           <div className="flex items-center gap-3 mb-5">
             <div
               className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0 transition-colors duration-200"
@@ -74,7 +74,7 @@ export function IdentityModal({
             </div>
           </div>
 
-          {/* Name input */}
+          {/*name input*/}
           <input
             ref={inputRef}
             value={name}
@@ -92,7 +92,7 @@ export function IdentityModal({
             )}
           />
 
-          {/* Colour swatches */}
+          {/*colour swatches*/}
           <div>
             <p className="text-xs text-text-muted uppercase tracking-wider font-medium mb-2.5">
               Cursor colour
@@ -118,10 +118,10 @@ export function IdentityModal({
           </div>
         </div>
 
-        {/* Divider */}
+        {/*divider*/}
         <div className="h-px bg-border mx-0" />
 
-        {/* Footer */}
+        {/*footer*/}
         <div className="px-6 py-4 flex items-center justify-between">
           <button
             onClick={onDismiss}

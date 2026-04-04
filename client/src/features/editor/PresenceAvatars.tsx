@@ -24,9 +24,6 @@ export function PresenceAvatars({ users }: PresenceAvatarsProps) {
               'w-7 h-7 rounded-full',
               'flex items-center justify-center',
               'text-[10px] font-bold text-white',
-              // CHANGED: border-[#09090B] → border-bg
-              // The border creates the stacking gap between overlapping avatars.
-              // Using border-bg makes it match the page background in both themes.
               'border-2 border-bg',
               'cursor-default select-none',
               'transition-transform duration-150 hover:scale-110 hover:z-10'

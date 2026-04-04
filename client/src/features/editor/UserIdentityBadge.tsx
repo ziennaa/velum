@@ -95,30 +95,20 @@ export function UserIdentityBadge({
         />
       </button>
 
-      {/* ── Edit popover ──────────────────────────────────────────────── */}
       {isOpen && (
         <div className="absolute right-0 top-9 z-50 w-64 bg-surface-raised border border-border-strong rounded-xl shadow-card-hover animate-fade-in p-3">
 
-          {/* Name section */}
+          {/*name*/}
           <p className="text-[10px] text-text-muted uppercase tracking-wider mb-2">
             Display name
           </p>
-
-          {/* 
-            FIX: The row uses overflow-hidden on the wrapper and min-w-0 on
-            the input so it shrinks properly. The check button is flex-shrink-0
-            so it never gets squeezed — it stays inside the container.
-          */}
           <div className="flex items-center gap-1.5 mb-3 w-full overflow-hidden">
-            {/* Live avatar preview */}
             <div
               className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0 transition-colors duration-150"
               style={{ backgroundColor: user.color }}
             >
               {getInitials(draftName || user.name)}
             </div>
-
-            {/* Input — min-w-0 lets it shrink when siblings need space */}
             <input
               ref={inputRef}
               value={draftName}
@@ -135,7 +125,6 @@ export function UserIdentityBadge({
               )}
             />
 
-            {/* Check button — flex-shrink-0 keeps it from being pushed out */}
             <button
               onClick={handleSave}
               className={cn(
@@ -149,7 +138,6 @@ export function UserIdentityBadge({
             </button>
           </div>
 
-          {/* Colour picker */}
           <p className="text-[10px] text-text-muted uppercase tracking-wider mb-2">
             Cursor colour
           </p>

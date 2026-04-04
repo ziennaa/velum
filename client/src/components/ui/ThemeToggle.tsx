@@ -24,7 +24,6 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
         className
       )}
     >
-      {/* Sun in dark mode (clicking moves to light), Moon in light mode */}
       {isDark ? (
         <Sun size={15} className="transition-transform duration-200" />
       ) : (
