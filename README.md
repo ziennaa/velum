@@ -252,7 +252,6 @@ Every document is accessible to anyone with its URL. There are no accounts, no a
 ## AI tools used
 - ChatGPT  
 - Claude  
-- Railway Agent 
 #### Claude (Anthropic) was used for architectural guidance, debugging. All integration decisions, design choices, and final implementation were verified and adjusted manually.
 
 ---
