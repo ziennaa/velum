@@ -57,10 +57,6 @@ export function createHocuspocusServer() {
     async onDisconnect({ documentName }) {
       logger.info(`User disconnected from document: ${documentName}`);
     },
-
-    async onError({ error }) {
-      logger.error('Hocuspocus error:', error);
-    },
   });
 
   return hocuspocus;

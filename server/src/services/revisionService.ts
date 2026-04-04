@@ -29,15 +29,17 @@ export const revisionService = {
   },
 
   async findByDocumentId(documentId: string): Promise<Omit<IRevision, 'yjsState'>[]> {
-    return RevisionModel.find({ documentId })
+    const results = await RevisionModel.find({ documentId })
       .select('-yjsState') 
       .sort({ createdAt: -1 })
       .limit(50)
       .lean();
+    return results as unknown as Omit<IRevision, 'yjsState'>[];
   },
 
   async findById(revisionId: string): Promise<IRevision | null> {
-    return RevisionModel.findById(revisionId).lean();
+    const result = await RevisionModel.findById(revisionId).lean();
+    return result as unknown as IRevision | null;
   },
 
   async restore(revisionId: string): Promise<{ documentId: string }> {

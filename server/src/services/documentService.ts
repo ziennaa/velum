@@ -16,11 +16,12 @@ export const documentService = {
   },
 
   async findAll(): Promise<IDocument[]> {
-    return DocumentModel.find({})
+    const results = await DocumentModel.find({})
       .select('-yjsState') 
       .sort({ updatedAt: -1 })
       .limit(50)
-      .lean();          
+      .lean();
+    return results as unknown as IDocument[];
   },
 
 
@@ -29,7 +30,7 @@ export const documentService = {
     if (!doc) {
       throw createError(`Document not found: ${id}`, 404);
     }
-    return doc;
+    return doc as unknown as IDocument;
   },
 
 
@@ -40,7 +41,7 @@ export const documentService = {
       { new: true, lean: true } 
     );
     if (!doc) throw createError(`Document not found: ${id}`, 404);
-    return doc;
+    return doc as unknown as IDocument;
   },
 
   async delete(id: string): Promise<void> {
@@ -58,6 +59,9 @@ export const documentService = {
   async loadYjsState(id: string): Promise<Uint8Array | null> {
     const doc = await DocumentModel.findById(id).select('yjsState');
     if (!doc || !doc.yjsState) return null;
-    return new Uint8Array(doc.yjsState);
+    // MongoDB may return a Binary object instead of a Buffer; normalise to Buffer first
+    const raw = doc.yjsState as unknown as { buffer?: Buffer } | Buffer;
+    const buf = Buffer.isBuffer(raw) ? raw : Buffer.from((raw as { buffer: Buffer }).buffer);
+    return new Uint8Array(buf);
   },
 };
