@@ -979,7 +979,15 @@ export default function Landing() {
               <p className="text-xs text-text-muted font-mono leading-relaxed">
                 Stack: Tiptap · Yjs · Hocuspocus · MongoDB
                 <br />
-                Hackathon submission · Source on GitHub
+                Hackathon submission ·{' '}
+                <a
+                  href="https://github.com/ziennaa/velum"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-4 hover:text-text-primary transition-colors"
+                >
+                  Source on GitHub
+                </a>
               </p>
             </div>
           </div>
