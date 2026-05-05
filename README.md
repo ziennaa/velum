@@ -270,6 +270,15 @@ Every document is accessible to anyone with its URL. There are no accounts, no a
 | WebSocket | Single-port HTTP upgrade, Hocuspocus protocol |
 
 
+
+
+
 ## License
 
 Released under the **MIT License**. See [LICENSE](./LICENSE).
+
+
+
+## Status
+Backend deployment is currently offline due to hosting limits.
+Frontend code remains available.
